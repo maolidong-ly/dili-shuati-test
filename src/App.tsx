@@ -13,6 +13,7 @@ import { invalidateCatalogQuestionCache } from './lib/catalog-question-cache'
 import { applyTheme, getStoredTheme } from './lib/theme'
 import { clearSession, getProfile, hasAccessGranted } from './lib/storage'
 import { refreshQuestionMetaFromCloud } from './lib/question-meta'
+import { pullAndMergeUserState, canSyncAcrossDevices } from './lib/user-sync'
 import { isCloudEnabled, releaseDeviceSession, syncProgress } from './lib/supabase'
 import type { LocalProfile, QuizLaunchConfig } from './types'
 import './App.css'
@@ -84,14 +85,20 @@ function App() {
   }, [runSync])
 
   useEffect(() => {
-    if (profile) {
-      void runSync(profile)
-      void refreshQuestionMetaFromCloud()
-      void import('./lib/user-sync').then((m) => {
-        if (m.canSyncAcrossDevices()) void m.pullAndMergeUserState(profile)
-      })
+    if (!profile) return
+    let cancelled = false
+    void (async () => {
+      await refreshQuestionMetaFromCloud()
+      if (canSyncAcrossDevices()) {
+        await pullAndMergeUserState(profile, 'replace')
+        if (!cancelled) bumpCatalog()
+      }
+      if (!cancelled) await runSync(profile)
+    })()
+    return () => {
+      cancelled = true
     }
-  }, [profile, runSync])
+  }, [profile, runSync, bumpCatalog])
 
   function handleReady(p: LocalProfile) {
     setProfile(p)

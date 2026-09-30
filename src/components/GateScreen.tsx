@@ -47,7 +47,7 @@ export function GateScreen({ onReady }: Props) {
 
     if (canSyncAcrossDevices()) {
       setInfo(restored ? '正在恢复云端进度…' : '正在同步…')
-      await pullAndMergeUserState(profile, userChanged ? 'replace' : 'merge')
+      await pullAndMergeUserState(profile, 'replace')
       await import('../lib/supabase').then((m) => m.syncProgress(profile))
       setInfo(restored ? '已恢复刷题记录与错题本' : '已同步云端')
     } else if (restored && !userChanged) {
