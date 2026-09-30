@@ -45,14 +45,31 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     }
   }
 
+  function onKindChange(next: QuestionKind) {
+    setKind(next)
+    if (next === 'judgment') {
+      setOpt0('正确')
+      setOpt1('错误')
+      setOpt2('')
+      setOpt3('')
+      setSingleAns(0)
+      setMultiAns([])
+    }
+  }
+
   async function handleSave(e: FormEvent) {
     e.preventDefault()
     const supabase = getSupabase()
     if (!supabase) return
-    const options = [opt0, opt1, opt2, opt3].map((s) => s.trim())
-    if (options.some((o) => !o)) {
-      setError('请填写四个选项')
-      return
+    let options: string[]
+    if (kind === 'judgment') {
+      options = [opt0.trim() || '正确', opt1.trim() || '错误']
+    } else {
+      options = [opt0, opt1, opt2, opt3].map((s) => s.trim())
+      if (options.some((o) => !o)) {
+        setError('请填写四个选项')
+        return
+      }
     }
     const qid = id.trim() || `${unitId}-q-${Date.now()}`
     const payload: Record<string, unknown> = {
@@ -64,7 +81,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       explanation: explanation.trim(),
       sort_order: 0,
     }
-    if (kind === 'single') {
+    if (kind === 'single' || kind === 'judgment') {
       payload.correct_single = singleAns
     } else {
       if (multiAns.length < 2) {
@@ -131,59 +148,82 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         </label>
         <label>
           题型
-          <select value={kind} onChange={(e) => setKind(e.target.value as QuestionKind)}>
+          <select value={kind} onChange={(e) => onKindChange(e.target.value as QuestionKind)}>
             <option value="single">单选题</option>
             <option value="multiple">多选题</option>
+            <option value="judgment">判断题</option>
           </select>
         </label>
         <label>
           题干
           <textarea value={stem} onChange={(e) => setStem(e.target.value)} required rows={3} />
         </label>
-        {(
-          [
-            [opt0, setOpt0],
-            [opt1, setOpt1],
-            [opt2, setOpt2],
-            [opt3, setOpt3],
-          ] as const
-        ).map(([value, setter], i) => (
-          <label key={i}>
-            选项 {String.fromCharCode(65 + i)}
-            <input
-              value={value}
-              onChange={(e) => setter(e.target.value)}
-              required
-            />
-          </label>
-        ))}
-        {kind === 'single' ? (
-          <label>
-            正确答案
-            <select value={singleAns} onChange={(e) => setSingleAns(Number(e.target.value))}>
-              {[0, 1, 2, 3].map((i) => (
-                <option key={i} value={i}>
-                  {String.fromCharCode(65 + i)}
-                </option>
-              ))}
-            </select>
-          </label>
+        {kind === 'judgment' ? (
+          <>
+            <label>
+              选项 A
+              <input value={opt0} onChange={(e) => setOpt0(e.target.value)} required />
+            </label>
+            <label>
+              选项 B
+              <input value={opt1} onChange={(e) => setOpt1(e.target.value)} required />
+            </label>
+            <label>
+              正确答案
+              <select value={singleAns} onChange={(e) => setSingleAns(Number(e.target.value))}>
+                <option value={0}>A（{opt0 || '正确'}）</option>
+                <option value={1}>B（{opt1 || '错误'}）</option>
+              </select>
+            </label>
+          </>
         ) : (
-          <div>
-            <span>正确答案（多选）</span>
-            <div className="admin-multi-pick">
-              {[0, 1, 2, 3].map((i) => (
-                <label key={i} className="check-inline">
-                  <input
-                    type="checkbox"
-                    checked={multiAns.includes(i)}
-                    onChange={() => toggleMulti(i)}
-                  />
-                  {String.fromCharCode(65 + i)}
-                </label>
-              ))}
-            </div>
-          </div>
+          <>
+            {(
+              [
+                [opt0, setOpt0],
+                [opt1, setOpt1],
+                [opt2, setOpt2],
+                [opt3, setOpt3],
+              ] as const
+            ).map(([value, setter], i) => (
+              <label key={i}>
+                选项 {String.fromCharCode(65 + i)}
+                <input
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  required
+                />
+              </label>
+            ))}
+            {kind === 'single' ? (
+              <label>
+                正确答案
+                <select value={singleAns} onChange={(e) => setSingleAns(Number(e.target.value))}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <option key={i} value={i}>
+                      {String.fromCharCode(65 + i)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div>
+                <span>正确答案（多选）</span>
+                <div className="admin-multi-pick">
+                  {[0, 1, 2, 3].map((i) => (
+                    <label key={i} className="check-inline">
+                      <input
+                        type="checkbox"
+                        checked={multiAns.includes(i)}
+                        onChange={() => toggleMulti(i)}
+                      />
+                      {String.fromCharCode(65 + i)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
         <label>
           解析（可选）
@@ -199,7 +239,14 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         {items.map((q) => (
           <li key={q.id} className="admin-row card">
             <div>
-              <strong>{q.kind === 'multiple' ? '【多选】' : '【单选】'}</strong> {q.stem.slice(0, 48)}
+              <strong>
+                {q.kind === 'multiple'
+                  ? '【多选】'
+                  : q.kind === 'judgment'
+                    ? '【判断】'
+                    : '【单选】'}
+              </strong>{' '}
+              {q.stem.slice(0, 48)}
             </div>
             <button type="button" className="btn ghost small danger" onClick={() => void handleDelete(q.id)}>
               删除

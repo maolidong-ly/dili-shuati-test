@@ -174,7 +174,9 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const { question, unitId: answerUnitId, unitLabel } = current
   const totals = progressTotals(progress)
   const stars = getEffectiveStars(question)
-  const isMulti = (question.kind ?? 'single') === 'multiple'
+  const qKind = question.kind ?? 'single'
+  const isMulti = qKind === 'multiple'
+  const isJudgment = qKind === 'judgment'
   const correctIdx = correctIndicesForDisplay(question)
 
   function handleReveal() {
@@ -309,11 +311,11 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
           </p>
         ) : null}
         <p className="stem">
-          {isMulti ? '【多选】' : ''}
+          {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
           {question.stem}
         </p>
         <ul className="options">
-          {question.options.map((text, i) => (
+          {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (
             <li key={`${question.id}-${i}`}>
               <button
                 type="button"

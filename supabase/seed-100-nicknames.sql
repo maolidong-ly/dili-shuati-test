@@ -1,5 +1,5 @@
--- 老师预占 100 个昵称（执行后 App 无法再注册第 101 个新昵称）
--- 在 Supabase SQL Editor 运行，或：bash scripts/seed-100-profiles.sh
+-- 【已弃用】请改用「学生申请 + 老师后台审核」，不要批量预占昵称。
+-- 若误跑过本脚本，可用 scripts/delete-preset-profiles.mjs 清理 学生001-100。
 --
 -- 默认昵称：学生001 … 学生100（可改下面 v_prefix / 循环范围）
 -- 执行前如有测试号可删： delete from public.profiles where nickname = 'test01';

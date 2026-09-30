@@ -20,6 +20,7 @@ for (const file of [
   'supabase/v2-p2-questions.sql',
   'supabase/v2-p3-scoring.sql',
   'supabase/v2-p4-admin-student-report.sql',
+  'supabase/v2-p5-judgment-questions.sql',
 ]) {
   console.log('running', file)
   await client.query(fs.readFileSync(path.join(root, file), 'utf8'))

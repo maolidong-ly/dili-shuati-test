@@ -5,7 +5,7 @@ export const STAR_LEVELS: StarLevel[] = [1, 2, 3, 4, 5]
 /** all = 不限星级；数组 = 只刷所选星级（未标注星级的题仅在「全部」中出现） */
 export type StarFilter = 'all' | StarLevel[]
 
-export type QuestionKind = 'single' | 'multiple'
+export type QuestionKind = 'single' | 'multiple' | 'judgment'
 
 export type ChoiceQuestion = {
   id: string

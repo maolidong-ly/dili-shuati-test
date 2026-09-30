@@ -25,6 +25,16 @@ function rowToQuestion(row: DbQuestion): ChoiceQuestion {
       explanation: row.explanation ?? undefined,
     }
   }
+  if (row.question_type === 'judgment') {
+    return {
+      id: row.id,
+      stem: row.stem,
+      options: options.length >= 2 ? options : ['正确', '错误'],
+      kind: 'judgment',
+      answerIndex: (row.correct_single ?? 0) as 0 | 1,
+      explanation: row.explanation ?? undefined,
+    }
+  }
   return {
     id: row.id,
     stem: row.stem,
