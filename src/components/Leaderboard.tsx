@@ -52,7 +52,7 @@ export function Leaderboard() {
 
   return (
     <section className="leaderboard">
-      <h2>班级排行榜</h2>
+      <h2 className="page-title">班级排行榜</h2>
       {!isCloudEnabled() ? (
         <p className="muted banner">
           未连接云数据库时无法显示排行榜。
@@ -77,7 +77,7 @@ export function Leaderboard() {
       </div>
 
       {tab === 'chapter' ? (
-        <div className="toolbar">
+        <div className="toolbar rank-toolbar">
           <label className="field">
             册别
             <select value={bookId} onChange={(e) => setBookId(e.target.value)}>
@@ -105,15 +105,15 @@ export function Leaderboard() {
 
       {tab === 'chapter' ? (
         <>
-          <p className="muted small">
-            {chapterTitle} · 完成章内全部题目后计入（可对题数/章总题数）
+          <p className="rank-context muted">
+            {chapterTitle} · 完成章内全部题目后计入
           </p>
           <ol className="rank-list">
             {chapterRows.map((row, i) => (
-              <li key={`${row.nickname}-${i}`}>
-                <span className="rank">{i + 1}</span>
-                <span className="name">{row.nickname}</span>
-                <span className="stat">{row.score} 分</span>
+              <li key={`${row.nickname}-${i}`} className="rank-row">
+                <span className="rank-no">{i + 1}</span>
+                <span className="rank-name">{row.nickname}</span>
+                <span className="rank-stat rank-stat-strong">{row.score} 分</span>
               </li>
             ))}
           </ol>
@@ -123,14 +123,17 @@ export function Leaderboard() {
         </>
       ) : (
         <>
-          <p className="muted small">按做过的题去重，同一题多次做只算一题</p>
+          <p className="rank-context muted">按做过的题去重统计</p>
           <ol className="rank-list">
             {globalRows.map((row, i) => (
-              <li key={`${row.nickname}-${i}`}>
-                <span className="rank">{i + 1}</span>
-                <span className="name">{row.nickname}</span>
-                <span className="stat">
-                  {row.accuracy}%（{row.correct}/{row.attempted}）
+              <li key={`${row.nickname}-${i}`} className="rank-row">
+                <span className="rank-no">{i + 1}</span>
+                <span className="rank-name">{row.nickname}</span>
+                <span className="rank-stat rank-stat-strong">
+                  <span className="rank-pct">{row.accuracy}%</span>
+                  <span className="rank-sub">
+                    {row.correct}/{row.attempted} 题
+                  </span>
                 </span>
               </li>
             ))}

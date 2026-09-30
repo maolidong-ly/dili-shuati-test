@@ -1,12 +1,20 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { GateInstallButton } from './GateInstallButton'
+import { loadGateCreds, saveGateCreds } from '../lib/gate-creds'
 import {
   applyForNickname,
   enterWithDevice,
   isCloudEnabled,
 } from '../lib/supabase'
 import { pullAndMergeUserState, canSyncAcrossDevices } from '../lib/user-sync'
-import { markAccessGranted, saveProfile } from '../lib/storage'
+import {
+  getProfile,
+  markAccessGranted,
+  resetLocalQuizState,
+  saveProfile,
+} from '../lib/storage'
+import { clearWrongBook } from '../lib/wrong-book'
 import type { LocalProfile } from '../types'
 
 type Props = {
@@ -18,22 +26,31 @@ type GateMode = 'login' | 'apply'
 export function GateScreen({ onReady }: Props) {
   const cloud = isCloudEnabled()
   const [mode, setMode] = useState<GateMode>(cloud ? 'login' : 'login')
-  const [passphrase, setPassphrase] = useState('')
-  const [nickname, setNickname] = useState('')
+  const saved = loadGateCreds()
+  const [passphrase, setPassphrase] = useState(saved.passphrase)
+  const [nickname, setNickname] = useState(saved.nickname)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
 
   async function finishLogin(profile: LocalProfile, restored: boolean) {
+    const prev = getProfile()
+    const userChanged = !prev || prev.userId !== profile.userId
+    if (userChanged) {
+      resetLocalQuizState()
+      clearWrongBook()
+    }
+
     saveProfile(profile)
     markAccessGranted()
+    saveGateCreds({ passphrase, nickname })
 
     if (canSyncAcrossDevices()) {
       setInfo(restored ? '正在恢复云端进度…' : '正在同步…')
-      await pullAndMergeUserState(profile)
+      await pullAndMergeUserState(profile, userChanged ? 'replace' : 'merge')
       await import('../lib/supabase').then((m) => m.syncProgress(profile))
       setInfo(restored ? '已恢复刷题记录与错题本' : '已同步云端')
-    } else if (restored) {
+    } else if (restored && !userChanged) {
       setInfo('已识别本机昵称，恢复本地进度')
     }
 
@@ -108,8 +125,13 @@ export function GateScreen({ onReady }: Props) {
           >
             申请账号
           </button>
+          <GateInstallButton />
         </div>
-      ) : null}
+      ) : (
+        <div className="gate-tabs">
+          <GateInstallButton />
+        </div>
+      )}
 
       <form className="card form-card" onSubmit={handleSubmit}>
         <label>
@@ -119,7 +141,10 @@ export function GateScreen({ onReady }: Props) {
             autoComplete="off"
             placeholder="向老师索取"
             value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
+            onChange={(e) => {
+              setPassphrase(e.target.value)
+              saveGateCreds({ passphrase: e.target.value, nickname })
+            }}
             required
           />
         </label>
@@ -135,7 +160,10 @@ export function GateScreen({ onReady }: Props) {
             }
             maxLength={16}
             value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
+            onChange={(e) => {
+              setNickname(e.target.value)
+              saveGateCreds({ passphrase, nickname: e.target.value })
+            }}
             required
           />
         </label>

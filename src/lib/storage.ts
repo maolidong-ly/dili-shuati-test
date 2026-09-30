@@ -41,6 +41,11 @@ export function clearSession() {
   localStorage.removeItem(KEYS.accessOk)
 }
 
+/** 切换账号时清空本机刷题进度（避免串到新账号） */
+export function resetLocalQuizState() {
+  writeProgress({})
+}
+
 export function markAccessGranted() {
   localStorage.setItem(KEYS.accessOk, '1')
 }

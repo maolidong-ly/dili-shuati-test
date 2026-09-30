@@ -1,5 +1,125 @@
 :root,
 html[data-theme='indigo'] {
+  --app-bg: #e8edff;
+  --app-bg-accent: linear-gradient(180deg, #dbeafe 0%, #eef2ff 45%, #e8edff 100%);
+  --app-card-bg: #ffffff;
+  --app-text: #0f172a;
+  --app-muted: #64748b;
+  --app-heading: #1e3a8a;
+  --app-primary: #2563eb;
+  --app-primary-dark: #1d4ed8;
+  --app-ghost: #1d4ed8;
+  --app-accent-border: #2563eb;
+  --app-elective-border: #7c3aed;
+  --app-card-shadow: 30 58 138 / 12%;
+  --app-primary-shadow: 37 99 235 / 35%;
+  --app-nav-active-bg: #dbeafe;
+  --app-nav-active-text: #1d4ed8;
+  --app-input-bg: #f8fafc;
+  --app-topbar-bg: rgb(255 255 255 / 92%);
+}
+
+html[data-theme='forest'] {
+  --app-bg: #d8f3e4;
+  --app-bg-accent: linear-gradient(180deg, #bbf7d0 0%, #ecfdf5 50%, #d8f3e4 100%);
+  --app-card-bg: #f7fef9;
+  --app-text: #052e16;
+  --app-muted: #4b7a5c;
+  --app-heading: #14532d;
+  --app-primary: #059669;
+  --app-primary-dark: #047857;
+  --app-ghost: #047857;
+  --app-accent-border: #10b981;
+  --app-elective-border: #0d9488;
+  --app-card-shadow: 6 78 59 / 14%;
+  --app-primary-shadow: 5 150 105 / 35%;
+  --app-nav-active-bg: #bbf7d0;
+  --app-nav-active-text: #047857;
+  --app-input-bg: #ecfdf5;
+  --app-topbar-bg: rgb(247 254 249 / 94%);
+}
+
+html[data-theme='rose'] {
+  --app-bg: #ffe4e8;
+  --app-bg-accent: linear-gradient(180deg, #fecdd3 0%, #fff1f2 55%, #ffe4e8 100%);
+  --app-card-bg: #fffafb;
+  --app-text: #4c0519;
+  --app-muted: #9f1239;
+  --app-heading: #9f1239;
+  --app-primary: #e11d48;
+  --app-primary-dark: #be123c;
+  --app-ghost: #be123c;
+  --app-accent-border: #f43f5e;
+  --app-elective-border: #db2777;
+  --app-card-shadow: 159 18 57 / 12%;
+  --app-primary-shadow: 225 29 72 / 32%;
+  --app-nav-active-bg: #ffe4e6;
+  --app-nav-active-text: #be123c;
+  --app-input-bg: #fff1f2;
+  --app-topbar-bg: rgb(255 250 251 / 94%);
+}
+
+html[data-theme='sand'] {
+  --app-bg: #fde6b8;
+  --app-bg-accent: linear-gradient(180deg, #fcd34d 0%, #fffbeb 55%, #fde6b8 100%);
+  --app-card-bg: #fffdf7;
+  --app-text: #451a03;
+  --app-muted: #92400e;
+  --app-heading: #92400e;
+  --app-primary: #d97706;
+  --app-primary-dark: #b45309;
+  --app-ghost: #b45309;
+  --app-accent-border: #f59e0b;
+  --app-elective-border: #ca8a04;
+  --app-card-shadow: 146 64 14 / 14%;
+  --app-primary-shadow: 217 119 6 / 35%;
+  --app-nav-active-bg: #fef3c7;
+  --app-nav-active-text: #b45309;
+  --app-input-bg: #fffbeb;
+  --app-topbar-bg: rgb(255 253 247 / 94%);
+}
+
+html[data-theme='slate'] {
+  --app-bg: #cbd5e1;
+  --app-bg-accent: linear-gradient(180deg, #94a3b8 0%, #e2e8f0 55%, #cbd5e1 100%);
+  --app-card-bg: #f8fafc;
+  --app-text: #0f172a;
+  --app-muted: #475569;
+  --app-heading: #334155;
+  --app-primary: #475569;
+  --app-primary-dark: #334155;
+  --app-ghost: #334155;
+  --app-accent-border: #64748b;
+  --app-elective-border: #475569;
+  --app-card-shadow: 15 23 42 / 14%;
+  --app-primary-shadow: 71 85 105 / 35%;
+  --app-nav-active-bg: #e2e8f0;
+  --app-nav-active-text: #334155;
+  --app-input-bg: #f1f5f9;
+  --app-topbar-bg: rgb(248 250 252 / 94%);
+}
+
+html[data-theme='midnight'] {
+  --app-bg: #070d18;
+  --app-bg-accent: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+  --app-card-bg: #1a2332;
+  --app-text: #e2e8f0;
+  --app-muted: #94a3b8;
+  --app-heading: #93c5fd;
+  --app-primary: #38bdf8;
+  --app-primary-dark: #0ea5e9;
+  --app-ghost: #7dd3fc;
+  --app-accent-border: #38bdf8;
+  --app-elective-border: #a78bfa;
+  --app-card-shadow: 0 0 0 / 40%;
+  --app-primary-shadow: 56 189 248 / 35%;
+  --app-nav-active-bg: #1e3a5f;
+  --app-nav-active-text: #bae6fd;
+  --app-input-bg: #0f172a;
+  --app-topbar-bg: rgb(26 35 50 / 94%);
+}
+
+html {
   font-family:
     'PingFang SC',
     'Hiragino Sans GB',
@@ -9,77 +129,22 @@ html[data-theme='indigo'] {
   line-height: 1.55;
   font-weight: 400;
   font-size: 15px;
-  color: #0f172a;
+  color: var(--app-text);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --app-bg: #eef2ff;
-  --app-heading: #1e3a8a;
-  --app-primary: #2563eb;
-  --app-primary-dark: #1d4ed8;
-  --app-ghost: #1d4ed8;
-  --app-accent-border: #2563eb;
-  --app-elective-border: #7c3aed;
-  --app-card-shadow: 30 58 138 / 10%;
-  --app-primary-shadow: 37 99 235 / 35%;
-  --app-nav-active-bg: #dbeafe;
-  --app-nav-active-text: #1d4ed8;
 }
 
-html[data-theme='forest'] {
-  --app-bg: #ecfdf5;
-  --app-heading: #14532d;
-  --app-primary: #059669;
-  --app-primary-dark: #047857;
-  --app-ghost: #047857;
-  --app-accent-border: #10b981;
-  --app-elective-border: #0d9488;
-  --app-card-shadow: 6 78 59 / 12%;
-  --app-primary-shadow: 5 150 105 / 35%;
-  --app-nav-active-bg: #d1fae5;
-  --app-nav-active-text: #047857;
+html[data-font='serif'] {
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
-html[data-theme='rose'] {
-  --app-bg: #fff1f2;
-  --app-heading: #9f1239;
-  --app-primary: #e11d48;
-  --app-primary-dark: #be123c;
-  --app-ghost: #be123c;
-  --app-accent-border: #f43f5e;
-  --app-elective-border: #db2777;
-  --app-card-shadow: 159 18 57 / 10%;
-  --app-primary-shadow: 225 29 72 / 32%;
-  --app-nav-active-bg: #ffe4e6;
-  --app-nav-active-text: #be123c;
+html[data-font='round'] {
+  font-family: 'Arial Rounded MT Bold', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
 }
 
-html[data-theme='sand'] {
-  --app-bg: #fffbeb;
-  --app-heading: #92400e;
-  --app-primary: #d97706;
-  --app-primary-dark: #b45309;
-  --app-ghost: #b45309;
-  --app-accent-border: #f59e0b;
-  --app-elective-border: #ca8a04;
-  --app-card-shadow: 146 64 14 / 10%;
-  --app-primary-shadow: 217 119 6 / 35%;
-  --app-nav-active-bg: #fef3c7;
-  --app-nav-active-text: #b45309;
-}
-
-html[data-theme='slate'] {
-  --app-bg: #f1f5f9;
-  --app-heading: #0f172a;
-  --app-primary: #475569;
-  --app-primary-dark: #334155;
-  --app-ghost: #334155;
-  --app-accent-border: #64748b;
-  --app-elective-border: #475569;
-  --app-card-shadow: 15 23 42 / 12%;
-  --app-primary-shadow: 71 85 105 / 35%;
-  --app-nav-active-bg: #e2e8f0;
-  --app-nav-active-text: #334155;
+html[data-font='large'] {
+  font-size: 17px;
 }
 
 *,
@@ -92,6 +157,8 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--app-bg);
+  background-image: var(--app-bg-accent);
+  color: var(--app-text);
 }
 
 #root {
@@ -102,4 +169,5 @@ button,
 input,
 select {
   font: inherit;
+  color: inherit;
 }

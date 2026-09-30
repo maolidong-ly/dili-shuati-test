@@ -1,4 +1,4 @@
-export type AppThemeId = 'indigo' | 'forest' | 'rose' | 'sand' | 'slate'
+export type AppThemeId = 'indigo' | 'forest' | 'rose' | 'sand' | 'midnight' | 'slate'
 
 export type AppTheme = {
   id: AppThemeId
@@ -7,11 +7,12 @@ export type AppTheme = {
 }
 
 export const APP_THEMES: AppTheme[] = [
-  { id: 'indigo', label: '默认蓝', emoji: '💙' },
+  { id: 'indigo', label: '学院蓝', emoji: '💙' },
   { id: 'forest', label: '护眼绿', emoji: '💚' },
-  { id: 'rose', label: '柔和粉', emoji: '🌸' },
-  { id: 'sand', label: '暖沙色', emoji: '🌅' },
-  { id: 'slate', label: '深灰蓝', emoji: '🌙' },
+  { id: 'rose', label: '樱花粉', emoji: '🌸' },
+  { id: 'sand', label: '暖杏色', emoji: '🌅' },
+  { id: 'midnight', label: '夜间黑', emoji: '🌙' },
+  { id: 'slate', label: '雾灰', emoji: '🌫️' },
 ]
 
 const STORAGE_KEY = 'geoquiz.theme.v1'

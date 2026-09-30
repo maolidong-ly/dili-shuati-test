@@ -4,7 +4,10 @@ import { getAllProgress, replaceAllProgress } from './storage'
 import { getSupabase, isCloudEnabled } from './supabase'
 import { listWrongQuestions, replaceAllWrongQuestions } from './wrong-book'
 
-export async function pullAndMergeUserState(profile: LocalProfile): Promise<boolean> {
+export async function pullAndMergeUserState(
+  profile: LocalProfile,
+  mode: 'merge' | 'replace' = 'merge',
+): Promise<boolean> {
   const supabase = getSupabase()
   if (!supabase) return false
 
@@ -20,12 +23,17 @@ export async function pullAndMergeUserState(profile: LocalProfile): Promise<bool
     wrong_book: WrongQuestionEntry[]
   }
 
-  replaceAllProgress(
-    mergeProgress(getAllProgress(), payload.progress ?? {}),
-  )
-  replaceAllWrongQuestions(
-    mergeWrongBook(listWrongQuestions(), payload.wrong_book ?? []),
-  )
+  if (mode === 'replace') {
+    replaceAllProgress(payload.progress ?? {})
+    replaceAllWrongQuestions(payload.wrong_book ?? [])
+  } else {
+    replaceAllProgress(
+      mergeProgress(getAllProgress(), payload.progress ?? {}),
+    )
+    replaceAllWrongQuestions(
+      mergeWrongBook(listWrongQuestions(), payload.wrong_book ?? []),
+    )
+  }
   return true
 }
 
