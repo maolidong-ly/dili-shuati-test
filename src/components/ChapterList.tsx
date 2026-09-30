@@ -33,7 +33,13 @@ export function ChapterList({ onSelectUnit }: Props) {
   return (
     <section className="catalog">
       <div className="catalog-hero">
-        <img src="/app-icon.png" alt="" className="catalog-logo" width={48} height={48} />
+        <img
+          src={`${import.meta.env.BASE_URL}pwa-192.png`}
+          alt=""
+          className="catalog-logo"
+          width={48}
+          height={48}
+        />
         <div>
           <h2>教材目录</h2>
           <p className="muted">点章节展开 · 点节次刷题（题目录入后）</p>
