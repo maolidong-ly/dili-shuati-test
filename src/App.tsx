@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PracticePanel } from './components/PracticePanel'
+import { AdminScreen } from './components/AdminScreen'
 import { GateScreen } from './components/GateScreen'
 import { InstallHint } from './components/InstallHint'
 import { Leaderboard } from './components/Leaderboard'
@@ -9,7 +10,7 @@ import { QuizSession } from './components/QuizSession'
 import { QuizSetup } from './components/QuizSetup'
 import { clearSession, getProfile, hasAccessGranted } from './lib/storage'
 import { refreshQuestionMetaFromCloud } from './lib/question-meta'
-import { isCloudEnabled, syncProgress } from './lib/supabase'
+import { isCloudEnabled, releaseDeviceSession, syncProgress } from './lib/supabase'
 import type { LocalProfile, QuizLaunchConfig } from './types'
 import './App.css'
 
@@ -21,6 +22,18 @@ type View =
 type Tab = 'practice' | 'wrong' | 'rank'
 
 function App() {
+  const [adminOpen, setAdminOpen] = useState(
+    () => window.location.hash === '#/admin',
+  )
+
+  useEffect(() => {
+    function onHash() {
+      setAdminOpen(window.location.hash === '#/admin')
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
   const [profile, setProfile] = useState<LocalProfile | null>(() => {
     if (!hasAccessGranted()) return null
     return getProfile()
@@ -75,10 +88,22 @@ function App() {
   async function handleLogout() {
     if (profile && isCloudEnabled() && navigator.onLine) {
       await syncProgress(profile)
+      await releaseDeviceSession(profile)
     }
     clearSession()
     setProfile(null)
     setView({ kind: 'home' })
+  }
+
+  if (adminOpen) {
+    return (
+      <AdminScreen
+        onClose={() => {
+          window.location.hash = ''
+          setAdminOpen(false)
+        }}
+      />
+    )
   }
 
   if (!profile) {
@@ -108,6 +133,7 @@ function App() {
         {view.kind === 'quiz' ? (
           <QuizSession
             launch={view.launch}
+            profile={profile}
             onBack={() => setView({ kind: 'home' })}
             onProgress={() => void runSync(profile)}
           />

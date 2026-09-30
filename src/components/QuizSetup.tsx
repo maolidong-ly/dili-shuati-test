@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { resolveQuizUnit } from '../data/curriculum'
+import { useQuizUnit } from '../hooks/useQuizUnit'
 import { countByStar, filterQuestions, starLabel } from '../lib/question-filter'
 import { listWrongByUnit } from '../lib/wrong-book'
 import type { QuizLaunchConfig, StarFilter, StarLevel } from '../types'
@@ -12,7 +12,7 @@ type Props = {
 }
 
 export function QuizSetup({ unitId, onStart, onBack }: Props) {
-  const unit = resolveQuizUnit(unitId)
+  const { unit, loading } = useQuizUnit(unitId)
   const [selectedStars, setSelectedStars] = useState<StarLevel[]>([])
   const [wrongOnly, setWrongOnly] = useState(false)
 
@@ -31,6 +31,14 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
   }, [allQuestions, starFilter, wrongOnly, wrongInUnit])
 
   const starCounts = useMemo(() => countByStar(allQuestions), [allQuestions])
+
+  if (loading) {
+    return (
+      <div className="screen">
+        <p className="muted">正在加载题库…</p>
+      </div>
+    )
+  }
 
   if (!unit) {
     return (

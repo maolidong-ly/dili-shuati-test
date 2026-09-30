@@ -1,17 +1,29 @@
-import { useMemo, useState } from 'react'
-import { collectQuestionsByIds, getBookForChapter, getQuizUnitLabel, resolveQuizUnit } from '../data/curriculum'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  collectQuestionsByIds,
+  getBookForChapter,
+  getQuizUnitLabel,
+} from '../data/curriculum'
+import { useQuizUnit } from '../hooks/useQuizUnit'
 import { filterQuestions, starLabel } from '../lib/question-filter'
+import { correctIndicesForDisplay, isAnswerCorrect } from '../lib/question-grade'
 import { getEffectiveStars } from '../lib/question-meta'
+import {
+  finishCloudPracticeSession,
+  recordCloudSessionAnswer,
+  startCloudPracticeSession,
+} from '../lib/practice-session'
 import { getChapterProgress, progressTotals, recordAnswer } from '../lib/storage'
 import {
   inferWrongBookKind,
   recordWrongAttempt,
   removeFromWrongBook,
 } from '../lib/wrong-book'
-import type { ChoiceQuestion, QuizLaunchConfig } from '../types'
+import type { ChoiceQuestion, LocalProfile, QuizLaunchConfig } from '../types'
 
 type Props = {
   launch: QuizLaunchConfig
+  profile: LocalProfile
   onBack: () => void
   onProgress: () => void
 }
@@ -22,10 +34,28 @@ type ActiveQuestion = {
   unitLabel: string
 }
 
-export function QuizSession({ launch, onBack, onProgress }: Props) {
-  const unit = resolveQuizUnit(launch.unitId)
+export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
+  const { unit, loading } = useQuizUnit(launch.unitId)
   const book =
     unit?.mode === 'chapter' ? getBookForChapter(unit.chapter.id) : undefined
+
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionEnded, setSessionEnded] = useState<{
+    score: number
+    answered: number
+    correct: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (launch.crossUnit || !unit) return
+    let cancelled = false
+    void startCloudPracticeSession(profile, launch.unitId).then((id) => {
+      if (!cancelled) setSessionId(id)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [launch.crossUnit, launch.unitId, profile, unit])
 
   const activeQuestions: ActiveQuestion[] = useMemo(() => {
     if (launch.crossUnit && launch.questionIds?.length) {
@@ -60,8 +90,22 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
   )
   const [progress, setProgress] = useState(initialProgress)
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selectedSingle, setSelectedSingle] = useState<number | null>(null)
+  const [selectedMulti, setSelectedMulti] = useState<number[]>([])
   const [revealed, setRevealed] = useState(false)
+  const [sessionAnswered, setSessionAnswered] = useState(0)
+  const [sessionCorrect, setSessionCorrect] = useState(0)
+
+  const chapterIdForCloud =
+    unit?.mode === 'chapter' ? unit.chapter.id : ''
+
+  if (!launch.crossUnit && loading) {
+    return (
+      <div className="screen">
+        <p className="muted">正在加载题目…</p>
+      </div>
+    )
+  }
 
   if (!launch.crossUnit && !unit) {
     return (
@@ -70,6 +114,24 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
         <button type="button" className="btn" onClick={onBack}>
           返回
         </button>
+      </div>
+    )
+  }
+
+  if (sessionEnded) {
+    return (
+      <div className="screen quiz">
+        <article className="card empty-card">
+          <h2>本次练习结束</h2>
+          <p>
+            当次得分：<strong>{sessionEnded.score}%</strong>（{sessionEnded.correct}/
+            {sessionEnded.answered}）
+          </p>
+          <p className="muted small">当次分数不计入排行榜</p>
+          <button type="button" className="btn primary" onClick={onBack}>
+            返回
+          </button>
+        </article>
       </div>
     )
   }
@@ -100,7 +162,7 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
           )}
           <p className="muted">
             {unit && unit.questions.length === 0
-              ? '本题库还在录入中。'
+              ? '本题库还在录入中，请老师在后台录题。'
               : '当前筛选条件下没有题目，请返回调整星级或错题筛选。'}
           </p>
         </article>
@@ -112,10 +174,17 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
   const { question, unitId: answerUnitId, unitLabel } = current
   const totals = progressTotals(progress)
   const stars = getEffectiveStars(question)
+  const isMulti = (question.kind ?? 'single') === 'multiple'
+  const correctIdx = correctIndicesForDisplay(question)
 
   function handleReveal() {
-    if (selected === null || revealed) return
-    const correct = selected === question.answerIndex
+    if (revealed) return
+    const selected: number | number[] | null = isMulti
+      ? selectedMulti
+      : selectedSingle
+    if (selected === null || (isMulti && selectedMulti.length === 0)) return
+
+    const correct = isAnswerCorrect(question, selected)
     const progressKey = launch.crossUnit ? answerUnitId : storageKey
     const next = recordAnswer(progressKey, question.id, correct, { allowRetry })
     setProgress(next)
@@ -135,14 +204,49 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
       removeFromWrongBook(question.id)
     }
 
+    setSessionAnswered((n) => n + 1)
+    if (correct) setSessionCorrect((n) => n + 1)
+
+    if (sessionId) {
+      void recordCloudSessionAnswer(
+        profile,
+        sessionId,
+        question.id,
+        correct,
+        chapterIdForCloud,
+      )
+    }
+
     setRevealed(true)
     onProgress()
+  }
+
+  async function handleFinish() {
+    if (sessionId) {
+      const result = await finishCloudPracticeSession(profile, sessionId)
+      if (result) {
+        setSessionEnded({
+          score: Number(result.session_score),
+          answered: result.answered,
+          correct: result.correct,
+        })
+        return
+      }
+    }
+    const answered = sessionAnswered
+    const correct = sessionCorrect
+    setSessionEnded({
+      score: answered === 0 ? 0 : Math.round((correct / answered) * 100),
+      answered,
+      correct,
+    })
   }
 
   function handleNext() {
     if (index < activeQuestions.length - 1) {
       setIndex(index + 1)
-      setSelected(null)
+      setSelectedSingle(null)
+      setSelectedMulti([])
       setRevealed(false)
     }
   }
@@ -150,19 +254,36 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
   function handlePrev() {
     if (index > 0) {
       setIndex(index - 1)
-      setSelected(null)
+      setSelectedSingle(null)
+      setSelectedMulti([])
       setRevealed(false)
     }
   }
 
-  const optionClass = (i: number) => {
+  function optionClass(i: number) {
     if (!revealed) {
-      return selected === i ? 'option selected' : 'option'
+      if (isMulti) return selectedMulti.includes(i) ? 'option selected' : 'option'
+      return selectedSingle === i ? 'option selected' : 'option'
     }
-    if (i === question.answerIndex) return 'option correct'
-    if (selected === i && i !== question.answerIndex) return 'option wrong'
+    if (correctIdx.includes(i)) return 'option correct'
+    const picked = isMulti ? selectedMulti.includes(i) : selectedSingle === i
+    if (picked && !correctIdx.includes(i)) return 'option wrong'
     return 'option'
   }
+
+  function onPickOption(i: number) {
+    if (revealed) return
+    if (isMulti) {
+      setSelectedMulti((prev) =>
+        prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort(),
+      )
+    } else {
+      setSelectedSingle(i)
+    }
+  }
+
+  const atLast = index >= activeQuestions.length - 1
+  const canSubmit = isMulti ? selectedMulti.length > 0 : selectedSingle !== null
 
   return (
     <div className="screen quiz">
@@ -187,15 +308,18 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
             {starLabel(stars)}
           </p>
         ) : null}
-        <p className="stem">{question.stem}</p>
+        <p className="stem">
+          {isMulti ? '【多选】' : ''}
+          {question.stem}
+        </p>
         <ul className="options">
           {question.options.map((text, i) => (
-            <li key={text}>
+            <li key={`${question.id}-${i}`}>
               <button
                 type="button"
                 className={optionClass(i)}
                 disabled={revealed}
-                onClick={() => setSelected(i)}
+                onClick={() => onPickOption(i)}
               >
                 <span className="opt-label">{String.fromCharCode(65 + i)}</span>
                 <span>{text}</span>
@@ -221,22 +345,30 @@ export function QuizSession({ launch, onBack, onProgress }: Props) {
             <button
               type="button"
               className="btn primary"
-              disabled={selected === null}
+              disabled={!canSubmit}
               onClick={handleReveal}
             >
               提交答案
             </button>
+          ) : atLast ? (
+            <button type="button" className="btn primary" onClick={() => void handleFinish()}>
+              结束练习
+            </button>
           ) : (
-            <button
-              type="button"
-              className="btn primary"
-              onClick={handleNext}
-              disabled={index >= activeQuestions.length - 1}
-            >
+            <button type="button" className="btn primary" onClick={handleNext}>
               下一题
             </button>
           )}
         </div>
+        {revealed && !atLast ? (
+          <button
+            type="button"
+            className="btn ghost full finish-inline"
+            onClick={() => void handleFinish()}
+          >
+            提前结束练习
+          </button>
+        ) : null}
       </article>
     </div>
   )

@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { allChapters, textbooks } from '../data/curriculum'
-import { fetchLeaderboard, isCloudEnabled } from '../lib/supabase'
-import type { LeaderboardRow } from '../types'
+import {
+  fetchChapterScoreboard,
+  fetchGlobalAccuracyBoard,
+  isCloudEnabled,
+} from '../lib/supabase'
+import type { ChapterScoreRow, GlobalAccuracyRow } from '../lib/supabase'
 
-type Tab = 'count' | 'accuracy'
+type Tab = 'chapter' | 'global'
 
 export function Leaderboard() {
   const [bookId, setBookId] = useState(textbooks[0]?.id ?? 'bx1')
@@ -12,8 +16,9 @@ export function Leaderboard() {
     [bookId],
   )
   const [chapterId, setChapterId] = useState(chaptersInBook[0]?.id ?? '')
-  const [tab, setTab] = useState<Tab>('count')
-  const [rows, setRows] = useState<LeaderboardRow[]>([])
+  const [tab, setTab] = useState<Tab>('chapter')
+  const [chapterRows, setChapterRows] = useState<ChapterScoreRow[]>([])
+  const [globalRows, setGlobalRows] = useState<GlobalAccuracyRow[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -23,29 +28,24 @@ export function Leaderboard() {
   }, [chaptersInBook, chapterId])
 
   useEffect(() => {
-    if (!chapterId) return
+    if (!isCloudEnabled()) return
     let cancelled = false
     async function load() {
       setLoading(true)
-      const data = await fetchLeaderboard(chapterId)
-      if (!cancelled) {
-        setRows(data)
-        setLoading(false)
+      if (tab === 'chapter' && chapterId) {
+        const data = await fetchChapterScoreboard(chapterId)
+        if (!cancelled) setChapterRows(data)
+      } else if (tab === 'global') {
+        const data = await fetchGlobalAccuracyBoard()
+        if (!cancelled) setGlobalRows(data)
       }
+      if (!cancelled) setLoading(false)
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [chapterId])
-
-  const sorted = [...rows].sort((a, b) => {
-    if (tab === 'count') return b.answered - a.answered
-    if (a.answered < 3 && b.answered < 3) return 0
-    if (a.answered < 3) return 1
-    if (b.answered < 3) return -1
-    return b.accuracy - a.accuracy
-  })
+  }, [chapterId, tab])
 
   const chapterTitle =
     allChapters.find((c) => c.id === chapterId)?.title ?? ''
@@ -55,71 +55,91 @@ export function Leaderboard() {
       <h2>班级排行榜</h2>
       {!isCloudEnabled() ? (
         <p className="muted banner">
-          未连接云数据库时仅本机练习，配置 Supabase 后可显示班级排行。
+          未连接云数据库时无法显示排行榜。
         </p>
       ) : null}
 
-      <div className="toolbar">
-        <label className="field">
-          册别
-          <select value={bookId} onChange={(e) => setBookId(e.target.value)}>
-            {textbooks.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.volumeLabel}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          章节
-          <select value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
-            {chaptersInBook.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="tabs">
-          <button
-            type="button"
-            className={tab === 'count' ? 'tab active' : 'tab'}
-            onClick={() => setTab('count')}
-          >
-            刷题数
-          </button>
-          <button
-            type="button"
-            className={tab === 'accuracy' ? 'tab active' : 'tab'}
-            onClick={() => setTab('accuracy')}
-          >
-            正确率
-          </button>
-        </div>
+      <div className="seg-tabs">
+        <button
+          type="button"
+          className={tab === 'chapter' ? 'seg active' : 'seg'}
+          onClick={() => setTab('chapter')}
+        >
+          章总分榜
+        </button>
+        <button
+          type="button"
+          className={tab === 'global' ? 'seg active' : 'seg'}
+          onClick={() => setTab('global')}
+        >
+          总正确率
+        </button>
       </div>
 
-      <p className="rank-context muted">{chapterTitle}</p>
+      {tab === 'chapter' ? (
+        <div className="toolbar">
+          <label className="field">
+            册别
+            <select value={bookId} onChange={(e) => setBookId(e.target.value)}>
+              {textbooks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.volumeLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            章节
+            <select value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
+              {chaptersInBook.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       {loading ? <p className="muted">加载中…</p> : null}
 
-      <ol className="rank-list">
-        {sorted.length === 0 && !loading ? (
-          <li className="muted">暂无数据，联网同步后会出现排行</li>
-        ) : null}
-        {sorted.slice(0, 50).map((row, i) => (
-          <li key={`${row.nickname}-${row.chapterId}`} className="rank-row">
-            <span className="rank-no">{i + 1}</span>
-            <span className="rank-name">{row.nickname}</span>
-            <span className="rank-stat">
-              {tab === 'count'
-                ? `${row.answered} 题`
-                : row.answered < 3
-                  ? '至少 3 题'
-                  : `${Math.round(row.accuracy * 100)}% (${row.correct}/${row.answered})`}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <p className="hint">正确率榜需本章至少完成 3 题。仅展示昵称，无真实身份信息。</p>
+      {tab === 'chapter' ? (
+        <>
+          <p className="muted small">
+            {chapterTitle} · 完成章内全部题目后计入（可对题数/章总题数）
+          </p>
+          <ol className="rank-list">
+            {chapterRows.map((row, i) => (
+              <li key={`${row.nickname}-${i}`}>
+                <span className="rank">{i + 1}</span>
+                <span className="name">{row.nickname}</span>
+                <span className="stat">{row.score} 分</span>
+              </li>
+            ))}
+          </ol>
+          {chapterRows.length === 0 && !loading ? (
+            <p className="muted">暂无上榜记录</p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <p className="muted small">按做过的题去重，同一题多次做只算一题</p>
+          <ol className="rank-list">
+            {globalRows.map((row, i) => (
+              <li key={`${row.nickname}-${i}`}>
+                <span className="rank">{i + 1}</span>
+                <span className="name">{row.nickname}</span>
+                <span className="stat">
+                  {row.accuracy}%（{row.correct}/{row.attempted}）
+                </span>
+              </li>
+            ))}
+          </ol>
+          {globalRows.length === 0 && !loading ? (
+            <p className="muted">暂无数据</p>
+          ) : null}
+        </>
+      )}
     </section>
   )
 }

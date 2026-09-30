@@ -5,13 +5,18 @@ export const STAR_LEVELS: StarLevel[] = [1, 2, 3, 4, 5]
 /** all = 不限星级；数组 = 只刷所选星级（未标注星级的题仅在「全部」中出现） */
 export type StarFilter = 'all' | StarLevel[]
 
+export type QuestionKind = 'single' | 'multiple'
+
 export type ChoiceQuestion = {
   id: string
   stem: string
-  options: [string, string, string, string]
-  answerIndex: 0 | 1 | 2 | 3
+  options: string[]
+  /** 默认单选 */
+  kind?: QuestionKind
+  answerIndex?: 0 | 1 | 2 | 3
+  /** 多选正确项下标 */
+  answerIndices?: number[]
   explanation?: string
-  /** 题库内默认星级（可选）；云端 question_meta 可覆盖 */
   stars?: StarLevel
 }
 
@@ -73,6 +78,9 @@ export type LocalProfile = {
   nickname: string
   syncToken: string
   registeredAt: string
+  /** P1 单设备会话 */
+  deviceId?: string
+  sessionToken?: string
 }
 
 export type LeaderboardRow = {
@@ -94,7 +102,19 @@ export type RegisterErrorCode =
   | 'quota_full'
   | 'offline'
   | 'cloud_not_configured'
+  | 'pending_approval'
+  | 'already_pending'
+  | 'account_disabled'
+  | 'nickname_not_found'
+  | 'device_in_use'
   | 'unknown'
+
+export type AdminProfileRow = {
+  id: string
+  nickname: string
+  status: 'pending' | 'active' | 'disabled'
+  created_at: string
+}
 
 /** 老师后台维护：题目 id → 星级（Supabase question_meta） */
 export type QuestionMetaRow = {
