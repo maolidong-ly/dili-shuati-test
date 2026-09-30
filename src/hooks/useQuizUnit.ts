@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { resolveQuizUnit, type QuizUnit } from '../data/curriculum'
+import { sortQuestionsById } from '../lib/question-display'
 import { fetchCloudQuestionsForUnit, mergeQuestionLists } from '../lib/questions-cloud'
 import { isCloudEnabled } from '../lib/supabase'
 
@@ -17,7 +18,9 @@ export function useQuizUnit(unitId: string) {
       return
     }
     if (!isCloudEnabled()) {
-      setUnit(local)
+      const questions = [...local.questions]
+      sortQuestionsById(questions)
+      setUnit({ ...local, questions } as QuizUnit)
       setLoading(false)
       return
     }
@@ -27,6 +30,7 @@ export function useQuizUnit(unitId: string) {
       const cloud = await fetchCloudQuestionsForUnit(unitId)
       if (cancelled || !local) return
       const merged = mergeQuestionLists(local.questions, cloud)
+      sortQuestionsById(merged)
       setUnit({ ...local, questions: merged } as QuizUnit)
       setLoading(false)
     }

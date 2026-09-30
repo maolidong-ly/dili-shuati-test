@@ -7,6 +7,7 @@ import {
 import { useQuizUnit } from '../hooks/useQuizUnit'
 import { filterQuestions, starLabel } from '../lib/question-filter'
 import { correctIndicesForDisplay, isAnswerCorrect } from '../lib/question-grade'
+import { formatStemWithIndex } from '../lib/question-display'
 import { getEffectiveStars } from '../lib/question-meta'
 import {
   finishCloudPracticeSession,
@@ -319,7 +320,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         ) : null}
         <p className="stem">
           {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
-          {question.stem}
+          {formatStemWithIndex(index + 1, question.stem)}
         </p>
         <ul className={`options${isJudgment ? ' options-judgment' : ''}`}>
           {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (

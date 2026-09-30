@@ -79,7 +79,10 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       stem: stem.trim(),
       options,
       explanation: explanation.trim(),
-      sort_order: 0,
+      sort_order: (() => {
+        const idx = items.findIndex((q) => q.id === qid)
+        return idx >= 0 ? idx + 1 : items.length + 1
+      })(),
     }
     if (kind === 'single' || kind === 'judgment') {
       payload.correct_single = singleAns
@@ -236,9 +239,10 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       </form>
 
       <ul className="admin-list">
-        {items.map((q) => (
+        {items.map((q, qi) => (
           <li key={q.id} className="admin-row card">
             <div>
+              <strong>{qi + 1}.</strong>{' '}
               <strong>
                 {q.kind === 'multiple'
                   ? '【多选】'
