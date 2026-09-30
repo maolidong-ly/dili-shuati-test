@@ -1,4 +1,5 @@
-:root {
+:root,
+html[data-theme='indigo'] {
   font-family:
     'PingFang SC',
     'Hiragino Sans GB',
@@ -8,10 +9,76 @@
   line-height: 1.5;
   font-weight: 400;
   color: #0f172a;
-  background: #eef2ff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  --app-bg: #eef2ff;
+  --app-heading: #1e3a8a;
+  --app-primary: #2563eb;
+  --app-primary-dark: #1d4ed8;
+  --app-ghost: #1d4ed8;
+  --app-accent-border: #2563eb;
+  --app-elective-border: #7c3aed;
+  --app-card-shadow: 30 58 138 / 10%;
+  --app-primary-shadow: 37 99 235 / 35%;
+  --app-nav-active-bg: #dbeafe;
+  --app-nav-active-text: #1d4ed8;
+}
+
+html[data-theme='forest'] {
+  --app-bg: #ecfdf5;
+  --app-heading: #14532d;
+  --app-primary: #059669;
+  --app-primary-dark: #047857;
+  --app-ghost: #047857;
+  --app-accent-border: #10b981;
+  --app-elective-border: #0d9488;
+  --app-card-shadow: 6 78 59 / 12%;
+  --app-primary-shadow: 5 150 105 / 35%;
+  --app-nav-active-bg: #d1fae5;
+  --app-nav-active-text: #047857;
+}
+
+html[data-theme='rose'] {
+  --app-bg: #fff1f2;
+  --app-heading: #9f1239;
+  --app-primary: #e11d48;
+  --app-primary-dark: #be123c;
+  --app-ghost: #be123c;
+  --app-accent-border: #f43f5e;
+  --app-elective-border: #db2777;
+  --app-card-shadow: 159 18 57 / 10%;
+  --app-primary-shadow: 225 29 72 / 32%;
+  --app-nav-active-bg: #ffe4e6;
+  --app-nav-active-text: #be123c;
+}
+
+html[data-theme='sand'] {
+  --app-bg: #fffbeb;
+  --app-heading: #92400e;
+  --app-primary: #d97706;
+  --app-primary-dark: #b45309;
+  --app-ghost: #b45309;
+  --app-accent-border: #f59e0b;
+  --app-elective-border: #ca8a04;
+  --app-card-shadow: 146 64 14 / 10%;
+  --app-primary-shadow: 217 119 6 / 35%;
+  --app-nav-active-bg: #fef3c7;
+  --app-nav-active-text: #b45309;
+}
+
+html[data-theme='slate'] {
+  --app-bg: #f1f5f9;
+  --app-heading: #0f172a;
+  --app-primary: #475569;
+  --app-primary-dark: #334155;
+  --app-ghost: #334155;
+  --app-accent-border: #64748b;
+  --app-elective-border: #475569;
+  --app-card-shadow: 15 23 42 / 12%;
+  --app-primary-shadow: 71 85 105 / 35%;
+  --app-nav-active-bg: #e2e8f0;
+  --app-nav-active-text: #334155;
 }
 
 *,
@@ -23,6 +90,7 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  background: var(--app-bg);
 }
 
 #root {

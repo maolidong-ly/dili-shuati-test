@@ -4,7 +4,7 @@
   flex-direction: column;
   max-width: 480px;
   margin: 0 auto;
-  background: #eef2ff;
+  background: var(--app-bg);
 }
 
 .screen {
@@ -24,7 +24,7 @@
 .gate-brand h1 {
   margin: 0.75rem 0 0.25rem;
   font-size: 1.65rem;
-  color: #1e3a8a;
+  color: var(--app-heading);
   letter-spacing: 0.02em;
 }
 
@@ -39,7 +39,7 @@
 .card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgb(30 58 138 / 10%);
+  box-shadow: 0 10px 30px rgb(var(--app-card-shadow));
   padding: 1.25rem;
 }
 
@@ -114,14 +114,14 @@
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-primary), var(--app-primary-dark));
   color: #fff;
-  box-shadow: 0 6px 16px rgb(37 99 235 / 35%);
+  box-shadow: 0 6px 16px rgb(var(--app-primary-shadow));
 }
 
 .btn.ghost {
   background: transparent;
-  color: #1d4ed8;
+  color: var(--app-ghost);
   padding-inline: 0.25rem;
 }
 
@@ -454,8 +454,8 @@
 }
 
 .book-tab.active {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: var(--app-primary-dark);
+  border-color: var(--app-primary-dark);
   color: #fff;
 }
 
@@ -469,7 +469,7 @@
   border-radius: 14px;
   padding: 0.85rem 1rem;
   margin-bottom: 0.75rem;
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid var(--app-accent-border);
 }
 
 .book-head.elective {
@@ -774,14 +774,68 @@
 }
 
 .nav.active {
-  background: #1d4ed8;
-  color: #fff;
+  background: var(--app-nav-active-bg);
+  color: var(--app-nav-active-text);
 }
 
 .leaderboard h2 {
   font-size: 1.15rem;
   margin: 1rem 0 0.75rem;
-  color: #1e3a8a;
+  color: var(--app-heading);
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.theme-switcher {
+  position: relative;
+}
+
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 50;
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  min-width: 9rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  border: 1px solid #e2e8f0;
+}
+
+.theme-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+}
+
+.theme-option.active,
+.theme-option:hover {
+  background: var(--app-nav-active-bg);
+  color: var(--app-nav-active-text);
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.inline-cancel {
+  margin-left: 0.5rem;
+  vertical-align: middle;
 }
 
 .toolbar {

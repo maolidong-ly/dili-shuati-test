@@ -8,6 +8,9 @@ import { WrongBookList } from './components/WrongBookList'
 import { countWrongQuestions } from './lib/wrong-book'
 import { QuizSession } from './components/QuizSession'
 import { QuizSetup } from './components/QuizSetup'
+import { ThemeSwitcher } from './components/ThemeSwitcher'
+import { invalidateCatalogQuestionCache } from './lib/catalog-question-cache'
+import { applyTheme, getStoredTheme } from './lib/theme'
 import { clearSession, getProfile, hasAccessGranted } from './lib/storage'
 import { refreshQuestionMetaFromCloud } from './lib/question-meta'
 import { isCloudEnabled, releaseDeviceSession, syncProgress } from './lib/supabase'
@@ -44,6 +47,16 @@ function App() {
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'ok' | 'fail'>(
     'idle',
   )
+  const [catalogRefreshKey, setCatalogRefreshKey] = useState(0)
+
+  useEffect(() => {
+    applyTheme(getStoredTheme())
+  }, [])
+
+  const bumpCatalog = useCallback(() => {
+    invalidateCatalogQuestionCache()
+    setCatalogRefreshKey((n) => n + 1)
+  }, [])
 
   const runSync = useCallback(async (p: LocalProfile) => {
     if (!isCloudEnabled() || !navigator.onLine) return
@@ -124,9 +137,12 @@ function App() {
             {online ? (syncState === 'syncing' ? '同步中' : '在线') : '离线'}
           </span>
         </div>
-        <button type="button" className="btn ghost small" onClick={handleLogout}>
-          退出
-        </button>
+        <div className="top-bar-actions">
+          <ThemeSwitcher />
+          <button type="button" className="btn ghost small" onClick={handleLogout}>
+            退出
+          </button>
+        </div>
       </header>
 
       <main className="main">
@@ -134,18 +150,28 @@ function App() {
           <QuizSession
             launch={view.launch}
             profile={profile}
-            onBack={() => setView({ kind: 'home' })}
-            onProgress={() => void runSync(profile)}
+            onBack={() => {
+              bumpCatalog()
+              setView({ kind: 'home' })
+            }}
+            onProgress={() => {
+              void runSync(profile)
+              bumpCatalog()
+            }}
           />
         ) : view.kind === 'setup' ? (
           <QuizSetup
             unitId={view.unitId}
-            onBack={() => setView({ kind: 'home' })}
+            onBack={() => {
+              bumpCatalog()
+              setView({ kind: 'home' })
+            }}
             onStart={(launch) => setView({ kind: 'quiz', launch })}
           />
         ) : tab === 'practice' ? (
           <PracticePanel
             onOpenSetup={(unitId) => setView({ kind: 'setup', unitId })}
+            catalogRefreshKey={catalogRefreshKey}
           />
         ) : tab === 'wrong' ? (
           <WrongBookList

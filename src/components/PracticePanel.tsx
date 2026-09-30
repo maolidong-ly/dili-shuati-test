@@ -6,9 +6,10 @@ export type PracticeMode = 'chapter' | 'topic'
 
 type Props = {
   onOpenSetup: (unitId: string) => void
+  catalogRefreshKey: number
 }
 
-export function PracticePanel({ onOpenSetup }: Props) {
+export function PracticePanel({ onOpenSetup, catalogRefreshKey }: Props) {
   const [mode, setMode] = useState<PracticeMode>('chapter')
 
   return (
@@ -35,7 +36,7 @@ export function PracticePanel({ onOpenSetup }: Props) {
       </div>
 
       {mode === 'chapter' ? (
-        <ChapterList onSelectUnit={onOpenSetup} />
+        <ChapterList onSelectUnit={onOpenSetup} refreshKey={catalogRefreshKey} />
       ) : (
         <TopicList onSelectUnit={onOpenSetup} />
       )}

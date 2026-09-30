@@ -19,10 +19,12 @@ type Props = {
 function QuestionListBlock({
   kind,
   questions,
+  onEdit,
   onDelete,
 }: {
   kind: QuestionKind
   questions: ChoiceQuestion[]
+  onEdit: (q: ChoiceQuestion) => void
   onDelete: (id: string) => void
 }) {
   if (questions.length === 0) return null
@@ -41,13 +43,22 @@ function QuestionListBlock({
               </strong>
               <p className="muted small admin-q-id">{q.id}</p>
             </div>
-            <button
-              type="button"
-              className="btn ghost small danger"
-              onClick={() => void onDelete(q.id)}
-            >
-              删除
-            </button>
+            <div className="admin-row-actions">
+              <button
+                type="button"
+                className="btn ghost small"
+                onClick={() => onEdit(q)}
+              >
+                修改
+              </button>
+              <button
+                type="button"
+                className="btn ghost small danger"
+                onClick={() => void onDelete(q.id)}
+              >
+                删除
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -73,6 +84,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
   const [singleAns, setSingleAns] = useState(0)
   const [multiAns, setMultiAns] = useState<number[]>([])
   const [explanation, setExplanation] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const grouped = useMemo(() => groupQuestionsByKind(items), [items])
 
@@ -92,6 +104,48 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  function resetForm() {
+    setEditingId(null)
+    setId('')
+    setStem('')
+    setExplanation('')
+    setOpt0('')
+    setOpt1('')
+    setOpt2('')
+    setOpt3('')
+    setSingleAns(0)
+    setMultiAns([])
+    setKind('single')
+  }
+
+  function loadForEdit(q: ChoiceQuestion) {
+    const k = questionKind(q)
+    setEditingId(q.id)
+    setId(q.id)
+    setKind(k)
+    setStem(q.stem)
+    setExplanation(q.explanation ?? '')
+    const opts = q.options ?? []
+    setOpt0(opts[0] ?? '')
+    setOpt1(opts[1] ?? '')
+    setOpt2(opts[2] ?? '')
+    setOpt3(opts[3] ?? '')
+    if (k === 'multiple') {
+      setMultiAns(q.answerIndices ?? [])
+      setSingleAns(0)
+    } else {
+      setSingleAns(q.answerIndex ?? 0)
+      setMultiAns([])
+    }
+    if (k === 'judgment') {
+      setOpt0(opts[0] || '对')
+      setOpt1(opts[1] || '错')
+    }
+    setListOpen(true)
+    setError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function onKindChange(next: QuestionKind) {
@@ -122,7 +176,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     }
     const trimmedId = id.trim()
     const qid =
-      trimmedId || nextQuestionIdForKind(unitId, kind, items)
+      trimmedId || editingId || nextQuestionIdForKind(unitId, kind, items)
     const sameKind = items.filter((q) => questionKind(q) === kind)
     const kindIndex =
       trimmedId && items.some((q) => q.id === qid)
@@ -158,9 +212,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       setLoading(false)
       return
     }
-    setId('')
-    setStem('')
-    setExplanation('')
+    resetForm()
     setItems(await loadMergedQuestionsForUnit(unitId))
     setLoading(false)
     setListOpen(true)
@@ -201,7 +253,15 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       </div>
 
       <form className="card form-card admin-q-form" onSubmit={handleSave}>
-        <h3>录入题目</h3>
+        <h3>{editingId ? '修改题目' : '录入题目'}</h3>
+        {editingId ? (
+          <p className="muted small">
+            正在编辑 <code>{editingId}</code>
+            <button type="button" className="btn ghost small inline-cancel" onClick={resetForm}>
+              取消编辑
+            </button>
+          </p>
+        ) : null}
         <label>
           题目 ID（可留空，按题型自动生成如 …-single-01）
           <input value={id} onChange={(e) => setId(e.target.value)} />
@@ -291,7 +351,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button type="submit" className="btn primary" disabled={loading}>
-          保存题目
+          {editingId ? '保存修改' : '保存题目'}
         </button>
       </form>
 
@@ -312,16 +372,19 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
                 <QuestionListBlock
                   kind="single"
                   questions={grouped.single}
+                  onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />
                 <QuestionListBlock
                   kind="multiple"
                   questions={grouped.multiple}
+                  onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />
                 <QuestionListBlock
                   kind="judgment"
                   questions={grouped.judgment}
+                  onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />
               </>

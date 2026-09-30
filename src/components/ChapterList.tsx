@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { textbooks } from '../data/curriculum'
 import {
-  chapterHasQuestions,
-  countChapterQuestions,
-  textbooks,
-} from '../data/curriculum'
+  getMergedQuestionsCached,
+  invalidateCatalogQuestionCache,
+} from '../lib/catalog-question-cache'
 import { getAggregatedChapterProgress } from '../lib/progress-aggregate'
-import { getChapterProgress, progressTotals } from '../lib/storage'
+import { getChapterProgress } from '../lib/storage'
+import type { ChoiceQuestion } from '../types'
 
 type Props = {
   onSelectUnit: (unitId: string) => void
+  refreshKey: number
 }
 
 const BOOK_TAB: Record<string, string> = {
@@ -19,15 +21,78 @@ const BOOK_TAB: Record<string, string> = {
   xx3: '选3',
 }
 
-export function ChapterList({ onSelectUnit }: Props) {
+export function ChapterList({ onSelectUnit, refreshKey }: Props) {
   const [bookId, setBookId] = useState(textbooks[0]?.id ?? 'bx1')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [unitQuestions, setUnitQuestions] = useState<Map<string, ChoiceQuestion[]>>(
+    () => new Map(),
+  )
+  const [countsLoading, setCountsLoading] = useState(false)
   const book = textbooks.find((b) => b.id === bookId) ?? textbooks[0]
+
+  useEffect(() => {
+    if (!book) return
+    let cancelled = false
+    invalidateCatalogQuestionCache()
+    setCountsLoading(true)
+    async function load() {
+      const map = new Map<string, ChoiceQuestion[]>()
+      const unitIds = book.chapters.flatMap((ch) => {
+        const ids = ch.sections.map((s) => s.id)
+        if (ch.questions.length > 0) ids.push(ch.id)
+        return ids
+      })
+      await Promise.all(
+        unitIds.map(async (id) => {
+          map.set(id, await getMergedQuestionsCached(id))
+        }),
+      )
+      if (!cancelled) {
+        setUnitQuestions(map)
+        setCountsLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [book, refreshKey])
+
+  const chapterQuestionIds = useMemo(() => {
+    const out = new Map<string, Set<string>>()
+    if (!book) return out
+    for (const ch of book.chapters) {
+      const ids = new Set<string>()
+      for (const s of ch.sections) {
+        for (const q of unitQuestions.get(s.id) ?? s.questions) {
+          ids.add(q.id)
+        }
+      }
+      if (ch.questions.length > 0) {
+        for (const q of unitQuestions.get(ch.id) ?? ch.questions) {
+          ids.add(q.id)
+        }
+      }
+      out.set(ch.id, ids)
+    }
+    return out
+  }, [book, unitQuestions])
 
   if (!book) return null
 
   function toggleChapter(chapterId: string) {
     setExpanded((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }))
+  }
+
+  function sectionTotal(sectionId: string, staticLen: number): number {
+    const qs = unitQuestions.get(sectionId)
+    return qs ? qs.length : staticLen
+  }
+
+  function chapterTotal(ch: (typeof book.chapters)[0]): number {
+    const idSet = chapterQuestionIds.get(ch.id)
+    if (idSet) return idSet.size
+    return ch.sections.reduce((n, s) => n + sectionTotal(s.id, s.questions.length), 0)
   }
 
   return (
@@ -42,7 +107,10 @@ export function ChapterList({ onSelectUnit }: Props) {
         />
         <div>
           <h2>教材目录</h2>
-          <p className="muted">点章节展开 · 点节次刷题（题目录入后）</p>
+          <p className="muted">
+            点章节展开 · 点节次刷题
+            {countsLoading ? ' · 同步题量…' : null}
+          </p>
         </div>
       </div>
 
@@ -71,9 +139,10 @@ export function ChapterList({ onSelectUnit }: Props) {
 
       <ul className="chapter-cards">
         {book.chapters.map((ch) => {
-          const totalQ = countChapterQuestions(ch)
-          const ready = chapterHasQuestions(ch)
-          const { answered, correct } = getAggregatedChapterProgress(ch)
+          const totalQ = chapterTotal(ch)
+          const ready = totalQ > 0
+          const validIds = chapterQuestionIds.get(ch.id)
+          const { answered, correct } = getAggregatedChapterProgress(ch, validIds)
           const isOpen = expanded[ch.id] ?? false
           const chapterTitle =
             ch.title.replace(/^第[一二三四五六七八九十百零\d]+章\s*/, '') || ch.title
@@ -107,8 +176,16 @@ export function ChapterList({ onSelectUnit }: Props) {
               {isOpen ? (
                 <ul className="section-list">
                   {ch.sections.map((s) => {
-                    const secTotal = s.questions.length
-                    const secProgress = progressTotals(getChapterProgress(s.id))
+                    const secTotal = sectionTotal(s.id, s.questions.length)
+                    const secIds = new Set(
+                      (unitQuestions.get(s.id) ?? s.questions).map((q) => q.id),
+                    )
+                    const raw = getChapterProgress(s.id)
+                    const answeredSec = raw.answeredIds.filter((id) => secIds.has(id)).length
+                    const secProgress = {
+                      answered: answeredSec,
+                      correct: raw.correctIds.filter((id) => secIds.has(id)).length,
+                    }
                     return (
                       <li key={s.id}>
                         <button
@@ -120,7 +197,7 @@ export function ChapterList({ onSelectUnit }: Props) {
                           <span className="section-title">{s.title}</span>
                           <span className="section-meta">
                             {secTotal > 0
-                              ? `${secProgress.answered}/${secTotal} 题`
+                              ? `${secProgress.answered}/${secTotal} 题 · 对 ${secProgress.correct}`
                               : '待录入'}
                           </span>
                         </button>
