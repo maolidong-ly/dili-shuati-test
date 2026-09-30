@@ -322,28 +322,29 @@ declare
   v_row public.questions%rowtype;
   v_unit text;
   v_old_unit text;
+  v_payload jsonb := p_payload::jsonb;
 begin
   perform public._check_admin_passphrase(p_admin_passphrase);
 
-  select unit_id into v_old_unit from public.questions where id = p_payload->>'id';
-  v_unit := p_payload->>'unit_id';
+  select unit_id into v_old_unit from public.questions where id = v_payload->>'id';
+  v_unit := v_payload->>'unit_id';
 
   insert into public.questions (
     id, unit_id, question_type, stem, options,
     correct_single, correct_multiple, explanation, sort_order, updated_at
   )
   values (
-    p_payload->>'id',
+    v_payload->>'id',
     v_unit,
-    p_payload->>'question_type',
-    p_payload->>'stem',
-    p_payload->'options',
-    (p_payload->>'correct_single')::smallint,
-    case when p_payload ? 'correct_multiple' then
-      array(select jsonb_array_elements_text(p_payload->'correct_multiple')::smallint)
+    v_payload->>'question_type',
+    v_payload->>'stem',
+    v_payload->'options',
+    (v_payload->>'correct_single')::smallint,
+    case when v_payload ? 'correct_multiple' then
+      array(select jsonb_array_elements_text(v_payload->'correct_multiple')::smallint)
     else null end,
-    nullif(p_payload->>'explanation', ''),
-    coalesce((p_payload->>'sort_order')::int, 0),
+    nullif(v_payload->>'explanation', ''),
+    coalesce((v_payload->>'sort_order')::int, 0),
     now()
   )
   on conflict (id) do update set
