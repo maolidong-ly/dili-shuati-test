@@ -1,5 +1,12 @@
 import type { Chapter, Textbook } from '../../types'
+import { xx1Ch03S01Questions } from './banks/xx1-ch03-s01-common-weather'
 import { textbooks } from './pep2019'
+
+const section = textbooks
+  .flatMap((b) => b.chapters)
+  .find((c) => c.id === 'xx1-ch03')
+  ?.sections.find((s) => s.id === 'xx1-ch03-s01')
+if (section) section.questions = xx1Ch03S01Questions
 
 export { textbooks }
 
