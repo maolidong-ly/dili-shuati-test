@@ -80,8 +80,8 @@ export function GateScreen({ onReady }: Props) {
     <div className="screen gate">
       <header className="gate-brand">
         <img src={iconSrc} alt="" width={72} height={72} className="gate-icon" />
-        <h1>高中地理刷题</h1>
-        <p className="muted">人教版 · 私域练习 · 虚拟昵称</p>
+        <h1>高中地理知识点刷记</h1>
+        <p className="gate-tagline">夯实基础 · 厚积薄发</p>
       </header>
 
       {cloud ? (

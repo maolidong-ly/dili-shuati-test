@@ -28,6 +28,14 @@
   letter-spacing: 0.02em;
 }
 
+.gate-tagline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--app-primary-dark);
+  letter-spacing: 0.12em;
+}
+
 .muted {
   color: #64748b;
 }
@@ -1163,4 +1171,55 @@
 
 .admin-q-id {
   margin: 0.25rem 0 0;
+}
+
+.admin-chapter-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.admin-chapter-pick select {
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.admin-attempts-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-attempts-unit h5 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.admin-attempts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.admin-attempts-table th,
+.admin-attempts-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.35rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-attempts-table th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.attempt-stem {
+  max-width: 10rem;
+  word-break: break-word;
 }

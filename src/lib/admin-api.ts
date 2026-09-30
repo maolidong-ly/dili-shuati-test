@@ -72,6 +72,33 @@ export async function adminDeleteProfile(
   if (error) throw new Error(error.message)
 }
 
+export type AdminQuestionAttemptRow = {
+  question_id: string
+  unit_id: string
+  question_type: string
+  stem: string
+  sort_order: number
+  attempt_count: number
+  ever_correct: boolean
+  last_answered_at: string | null
+}
+
+export async function adminGetStudentChapterAttempts(
+  adminPassphrase: string,
+  profileId: string,
+  chapterId: string,
+): Promise<AdminQuestionAttemptRow[]> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('cloud_not_configured')
+  const { data, error } = await supabase.rpc('admin_get_student_chapter_attempts', {
+    p_admin_passphrase: adminPassphrase,
+    p_profile_id: profileId,
+    p_chapter_id: chapterId,
+  })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as AdminQuestionAttemptRow[]
+}
+
 export async function adminGetStudentReport(
   adminPassphrase: string,
   profileId: string,

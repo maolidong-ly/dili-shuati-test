@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { allChapters } from '../data/curriculum'
-import { adminGetStudentReport, type AdminStudentReport } from '../lib/admin-api'
+import { allChapters, getBookForChapter } from '../data/curriculum'
+import {
+  adminGetStudentChapterAttempts,
+  adminGetStudentReport,
+  type AdminQuestionAttemptRow,
+  type AdminStudentReport,
+} from '../lib/admin-api'
+import { KIND_LABELS } from '../lib/question-display'
 import { labelForUnitId } from '../lib/unit-label'
+import type { QuestionKind } from '../types'
 
 type Props = {
   adminPass: string
@@ -15,6 +22,21 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [showInProgress, setShowInProgress] = useState(false)
+
+  const chapterOptions = useMemo(
+    () =>
+      allChapters.map((ch) => {
+        const book = getBookForChapter(ch.id)
+        return {
+          id: ch.id,
+          label: book ? `${book.volumeLabel} · ${ch.title}` : ch.title,
+        }
+      }),
+    [],
+  )
+  const [chapterId, setChapterId] = useState(chapterOptions[0]?.id ?? '')
+  const [attempts, setAttempts] = useState<AdminQuestionAttemptRow[]>([])
+  const [attemptsLoading, setAttemptsLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -33,6 +55,37 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
       cancelled = true
     }
   }, [adminPass, profileId])
+
+  useEffect(() => {
+    if (!chapterId) return
+    let cancelled = false
+    setAttemptsLoading(true)
+    adminGetStudentChapterAttempts(adminPass, profileId, chapterId)
+      .then((rows) => {
+        if (!cancelled) setAttempts(rows)
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : '加载练习明细失败')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAttemptsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [adminPass, profileId, chapterId])
+
+  const attemptsByUnit = useMemo(() => {
+    const map = new Map<string, AdminQuestionAttemptRow[]>()
+    for (const row of attempts) {
+      const list = map.get(row.unit_id) ?? []
+      list.push(row)
+      map.set(row.unit_id, list)
+    }
+    return map
+  }, [attempts])
 
   const progressEntries = report
     ? Object.entries(report.progress).filter(([, p]) => p.answeredIds.length > 0)
@@ -151,6 +204,72 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
             )}
             {report.wrong_book.length > 30 ? (
               <p className="muted small">仅显示前 30 条</p>
+            ) : null}
+          </section>
+
+          <section className="card admin-report-block">
+            <h4>按章 · 每题练习次数</h4>
+            <p className="muted small admin-report-hint">
+              统计学生每次在练习中「提交答案」的次数（含重复练习同一题）。仅含云端题库中的题。
+            </p>
+            <label className="admin-chapter-pick">
+              选择章节
+              <select value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
+                {chapterOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {attemptsLoading ? <p className="muted">加载练习明细…</p> : null}
+            {!attemptsLoading && attempts.length === 0 ? (
+              <p className="muted">该章暂无云端题目或尚无练习记录</p>
+            ) : null}
+            {!attemptsLoading && attempts.length > 0 ? (
+              <div className="admin-attempts-groups">
+                {[...attemptsByUnit.entries()].map(([unitId, rows]) => (
+                  <div key={unitId} className="admin-attempts-unit">
+                    <h5>{labelForUnitId(unitId)}</h5>
+                    <table className="admin-attempts-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>题型</th>
+                          <th>题干</th>
+                          <th>练习次数</th>
+                          <th>曾对</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row, i) => {
+                          const kind = row.question_type as QuestionKind
+                          const kindLabel =
+                            KIND_LABELS[kind] ??
+                            (kind === 'multiple'
+                              ? '多选'
+                              : kind === 'judgment'
+                                ? '判断'
+                                : '单选')
+                          return (
+                            <tr key={row.question_id}>
+                              <td>{i + 1}</td>
+                              <td>{kindLabel}</td>
+                              <td className="attempt-stem">
+                                {row.stem.length > 40
+                                  ? `${row.stem.slice(0, 40)}…`
+                                  : row.stem}
+                              </td>
+                              <td>{row.attempt_count}</td>
+                              <td>{row.ever_correct ? '是' : '否'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
             ) : null}
           </section>
 

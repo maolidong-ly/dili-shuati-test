@@ -20,9 +20,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'app-icon.png'],
       manifest: {
-        name: '高中地理刷题',
-        short_name: '地理刷题',
-        description: '人教版高中地理选择题练习',
+        name: '高中地理知识点刷记',
+        short_name: '地理刷记',
+        description: '夯实基础 · 厚积薄发',
         theme_color: '#1e3a8a',
         background_color: '#eef2ff',
         display: 'standalone',
