@@ -1259,35 +1259,118 @@
 .admin-attempts-groups {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
-.admin-attempts-unit h5 {
-  margin: 0 0 0.35rem;
-  font-size: 0.9rem;
-  color: #334155;
+.admin-attempts-unit {
+  padding: 0.65rem 0.75rem;
 }
 
-.admin-attempts-table {
+.admin-attempt-unit-toggle {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.78rem;
-}
-
-.admin-attempts-table th,
-.admin-attempts-table td {
-  border: 1px solid #e2e8f0;
-  padding: 0.35rem 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
   text-align: left;
-  vertical-align: top;
 }
 
-.admin-attempts-table th {
+.admin-attempt-unit-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.admin-attempt-kinds {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-attempt-kind-toggle {
+  width: 100%;
+  border: none;
+  background: var(--app-nav-active-bg);
+  color: var(--app-nav-active-text);
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-attempt-list {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-attempt-item {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr 2.1rem 2.1rem;
+  gap: 0.35rem;
+  align-items: start;
+  padding: 0.45rem 0.4rem;
+  border-radius: 10px;
   background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-attempt-no {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--app-primary-dark);
+  text-align: center;
+  padding-top: 0.1rem;
+}
+
+.admin-attempt-stem {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #334155;
+  word-break: break-word;
+}
+
+.admin-attempt-stat {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.15rem 0;
+  border-radius: 6px;
+}
+
+.admin-attempt-stat.ok {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.admin-attempt-stat.bad {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.admin-attempt-legend {
+  margin: 0.35rem 0 0;
+  text-align: right;
+}
+
+.ok-inline {
+  color: #047857;
   font-weight: 700;
 }
 
-.attempt-stem {
-  max-width: 10rem;
-  word-break: break-word;
+.bad-inline {
+  color: #b91c1c;
+  font-weight: 700;
 }

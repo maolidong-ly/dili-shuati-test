@@ -6,9 +6,19 @@ import {
   type AdminQuestionAttemptRow,
   type AdminStudentReport,
 } from '../lib/admin-api'
+import {
+  groupAttemptsByUnitAndKind,
+  sectionSortKey,
+} from '../lib/admin-attempt-display'
 import { KIND_LABELS } from '../lib/question-display'
 import { labelForUnitId } from '../lib/unit-label'
 import type { QuestionKind } from '../types'
+
+const KINDS: QuestionKind[] = ['single', 'multiple', 'judgment']
+
+function collapseKey(unitId: string, kind: QuestionKind) {
+  return `${unitId}:${kind}`
+}
 
 type Props = {
   adminPass: string
@@ -37,6 +47,8 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
   const [chapterId, setChapterId] = useState(chapterOptions[0]?.id ?? '')
   const [attempts, setAttempts] = useState<AdminQuestionAttemptRow[]>([])
   const [attemptsLoading, setAttemptsLoading] = useState(false)
+  const [unitOpen, setUnitOpen] = useState<Record<string, boolean>>({})
+  const [kindOpen, setKindOpen] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -77,15 +89,26 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
     }
   }, [adminPass, profileId, chapterId])
 
-  const attemptsByUnit = useMemo(() => {
-    const map = new Map<string, AdminQuestionAttemptRow[]>()
-    for (const row of attempts) {
-      const list = map.get(row.unit_id) ?? []
-      list.push(row)
-      map.set(row.unit_id, list)
-    }
-    return map
-  }, [attempts])
+  const attemptsGrouped = useMemo(
+    () => groupAttemptsByUnitAndKind(attempts),
+    [attempts],
+  )
+
+  const sortedUnitIds = useMemo(
+    () =>
+      [...attemptsGrouped.keys()].sort(
+        (a, b) => sectionSortKey(a) - sectionSortKey(b) || a.localeCompare(b, 'zh-CN'),
+      ),
+    [attemptsGrouped],
+  )
+
+  function isUnitExpanded(unitId: string) {
+    return unitOpen[unitId] !== false
+  }
+
+  function isKindExpanded(unitId: string, kind: QuestionKind) {
+    return kindOpen[collapseKey(unitId, kind)] !== false
+  }
 
   const progressEntries = report
     ? Object.entries(report.progress).filter(([, p]) => p.answeredIds.length > 0)
@@ -210,7 +233,7 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
           <section className="card admin-report-block">
             <h4>按章 · 每题练习次数</h4>
             <p className="muted small admin-report-hint">
-              统计学生每次在练习中「提交答案」的次数（含重复练习同一题）。仅含云端题库中的题。
+              按小节、题型展开；序号为与学生端一致的题型内编号。仅统计云端题库。
             </p>
             <label className="admin-chapter-pick">
               选择章节
@@ -228,47 +251,80 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
             ) : null}
             {!attemptsLoading && attempts.length > 0 ? (
               <div className="admin-attempts-groups">
-                {[...attemptsByUnit.entries()].map(([unitId, rows]) => (
-                  <div key={unitId} className="admin-attempts-unit">
-                    <h5>{labelForUnitId(unitId)}</h5>
-                    <table className="admin-attempts-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>题型</th>
-                          <th>题干</th>
-                          <th>练习次数</th>
-                          <th>曾对</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row, i) => {
-                          const kind = row.question_type as QuestionKind
-                          const kindLabel =
-                            KIND_LABELS[kind] ??
-                            (kind === 'multiple'
-                              ? '多选'
-                              : kind === 'judgment'
-                                ? '判断'
-                                : '单选')
-                          return (
-                            <tr key={row.question_id}>
-                              <td>{i + 1}</td>
-                              <td>{kindLabel}</td>
-                              <td className="attempt-stem">
-                                {row.stem.length > 40
-                                  ? `${row.stem.slice(0, 40)}…`
-                                  : row.stem}
-                              </td>
-                              <td>{row.attempt_count}</td>
-                              <td>{row.ever_correct ? '是' : '否'}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
+                {sortedUnitIds.map((unitId) => {
+                  const byKind = attemptsGrouped.get(unitId)!
+                  const unitTotal = KINDS.reduce((n, k) => n + byKind[k].length, 0)
+                  return (
+                    <div key={unitId} className="admin-attempts-unit card">
+                      <button
+                        type="button"
+                        className="admin-attempt-unit-toggle"
+                        aria-expanded={isUnitExpanded(unitId)}
+                        onClick={() =>
+                          setUnitOpen((prev) => ({
+                            ...prev,
+                            [unitId]: !isUnitExpanded(unitId),
+                          }))
+                        }
+                      >
+                        <span className="admin-attempt-unit-title">
+                          {isUnitExpanded(unitId) ? '▼' : '▶'}{' '}
+                          {labelForUnitId(unitId)}
+                        </span>
+                        <span className="muted small">{unitTotal} 题</span>
+                      </button>
+                      {isUnitExpanded(unitId) ? (
+                        <div className="admin-attempt-kinds">
+                          {KINDS.map((kind) => {
+                            const rows = byKind[kind]
+                            if (rows.length === 0) return null
+                            const key = collapseKey(unitId, kind)
+                            const open = isKindExpanded(unitId, kind)
+                            return (
+                              <div key={key} className="admin-attempt-kind-block">
+                                <button
+                                  type="button"
+                                  className="admin-attempt-kind-toggle"
+                                  aria-expanded={open}
+                                  onClick={() =>
+                                    setKindOpen((prev) => ({
+                                      ...prev,
+                                      [key]: !open,
+                                    }))
+                                  }
+                                >
+                                  {open ? '▼' : '▶'} {KIND_LABELS[kind]}（{rows.length}）
+                                </button>
+                                {open ? (
+                                  <>
+                                  <p className="admin-attempt-legend muted small">
+                                    序号 · 题干 · <span className="ok-inline">✓正确</span> ·{' '}
+                                    <span className="bad-inline">✗错误</span>
+                                  </p>
+                                  <ul className="admin-attempt-list">
+                                    {rows.map((row, i) => (
+                                      <li key={row.question_id} className="admin-attempt-item">
+                                        <span className="admin-attempt-no">{i + 1}</span>
+                                        <p className="admin-attempt-stem">{row.stem}</p>
+                                        <span className="admin-attempt-stat ok" title="正确次数">
+                                          ✓{row.correct_count}
+                                        </span>
+                                        <span className="admin-attempt-stat bad" title="错误次数">
+                                          ✗{row.wrong_count}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  </>
+                                ) : null}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
             ) : null}
           </section>

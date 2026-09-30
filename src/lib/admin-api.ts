@@ -78,8 +78,8 @@ export type AdminQuestionAttemptRow = {
   question_type: string
   stem: string
   sort_order: number
-  attempt_count: number
-  ever_correct: boolean
+  correct_count: number
+  wrong_count: number
   last_answered_at: string | null
 }
 
