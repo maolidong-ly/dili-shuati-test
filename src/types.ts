@@ -62,9 +62,13 @@ export type WrongQuestionEntry = {
   kind: WrongBookKind
 }
 
+export type QuestionKindFilter = QuestionKind | 'all'
+
 export type QuizLaunchConfig = {
   unitId: string
   starFilter: StarFilter
+  /** 只练某一题型；默认 all */
+  kindFilter?: QuestionKindFilter
   /** 仅刷错题库中、且属于本单元的题 */
   wrongOnly?: boolean
   /** 直接指定题目 id 列表（错题本「全部重练」） */

@@ -1,16 +1,27 @@
-import type { ChoiceQuestion, StarFilter, StarLevel } from '../types'
+import type {
+  ChoiceQuestion,
+  QuestionKindFilter,
+  StarFilter,
+  StarLevel,
+} from '../types'
+import { questionKind } from './question-display'
 import { applyQuestionMeta, getEffectiveStars } from './question-meta'
 
 export function filterQuestions(
   questions: ChoiceQuestion[],
   starFilter: StarFilter,
   questionIds?: string[],
+  kindFilter: QuestionKindFilter = 'all',
 ): ChoiceQuestion[] {
   let list = applyQuestionMeta(questions)
 
   if (questionIds && questionIds.length > 0) {
     const set = new Set(questionIds)
     list = list.filter((q) => set.has(q.id))
+  }
+
+  if (kindFilter !== 'all') {
+    list = list.filter((q) => questionKind(q) === kindFilter)
   }
 
   if (starFilter === 'all') return list

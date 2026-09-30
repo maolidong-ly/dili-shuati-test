@@ -204,9 +204,25 @@
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.setup-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.setup-toolbar h3 {
+  margin: 0;
+}
+
 .setup-card h3 {
   margin: 0 0 0.35rem;
   font-size: 1rem;
+}
+
+.setup-card h3:not(:first-child) {
+  margin-top: 1.25rem;
 }
 
 .setup-hint {
@@ -1061,4 +1077,36 @@
 
 .wrong-preview li {
   margin-bottom: 0.35rem;
+}
+
+.admin-report-hint {
+  margin: 0 0 0.5rem;
+}
+
+.admin-report-inprogress {
+  margin-top: 0.75rem;
+}
+
+.admin-q-list-wrap {
+  margin-top: 1rem;
+}
+
+.admin-q-list-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.admin-q-kind-block {
+  margin-bottom: 1rem;
+}
+
+.admin-q-kind-block h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+.admin-q-id {
+  margin: 0.25rem 0 0;
 }

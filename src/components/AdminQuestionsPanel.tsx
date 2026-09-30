@@ -1,20 +1,67 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { listUnitOptions } from '../data/curriculum/unit-options'
-import { fetchCloudQuestionsForUnit } from '../lib/questions-cloud'
+import { loadMergedQuestionsForUnit } from '../lib/load-unit-questions'
+import {
+  groupQuestionsByKind,
+  KIND_LABELS,
+  nextQuestionIdForKind,
+  questionKind,
+  sortOrderForKind,
+} from '../lib/question-display'
 import { getSupabase } from '../lib/supabase'
-import type { QuestionKind } from '../types'
+import type { ChoiceQuestion, QuestionKind } from '../types'
 
 type Props = {
   adminPass: string
 }
 
+function QuestionListBlock({
+  kind,
+  questions,
+  onDelete,
+}: {
+  kind: QuestionKind
+  questions: ChoiceQuestion[]
+  onDelete: (id: string) => void
+}) {
+  if (questions.length === 0) return null
+  return (
+    <div className="admin-q-kind-block">
+      <h4>
+        {KIND_LABELS[kind]}（{questions.length}）
+      </h4>
+      <ul className="admin-list">
+        {questions.map((q, qi) => (
+          <li key={q.id} className="admin-row card">
+            <div>
+              <strong>
+                {qi + 1}. {q.stem.slice(0, 56)}
+                {q.stem.length > 56 ? '…' : ''}
+              </strong>
+              <p className="muted small admin-q-id">{q.id}</p>
+            </div>
+            <button
+              type="button"
+              className="btn ghost small danger"
+              onClick={() => void onDelete(q.id)}
+            >
+              删除
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function AdminQuestionsPanel({ adminPass }: Props) {
   const units = useMemo(() => listUnitOptions(), [])
   const [unitId, setUnitId] = useState(units[0]?.id ?? '')
-  const [items, setItems] = useState<Awaited<ReturnType<typeof fetchCloudQuestionsForUnit>>>([])
+  const [items, setItems] = useState<ChoiceQuestion[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [listOpen, setListOpen] = useState(true)
 
   const [id, setId] = useState('')
   const [kind, setKind] = useState<QuestionKind>('single')
@@ -27,6 +74,8 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
   const [multiAns, setMultiAns] = useState<number[]>([])
   const [explanation, setExplanation] = useState('')
 
+  const grouped = useMemo(() => groupQuestionsByKind(items), [items])
+
   useEffect(() => {
     void reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,7 +86,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     setLoading(true)
     setError('')
     try {
-      setItems(await fetchCloudQuestionsForUnit(unitId))
+      setItems(await loadMergedQuestionsForUnit(unitId))
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -71,7 +120,15 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         return
       }
     }
-    const qid = id.trim() || `${unitId}-q-${Date.now()}`
+    const trimmedId = id.trim()
+    const qid =
+      trimmedId || nextQuestionIdForKind(unitId, kind, items)
+    const sameKind = items.filter((q) => questionKind(q) === kind)
+    const kindIndex =
+      trimmedId && items.some((q) => q.id === qid)
+        ? sameKind.findIndex((q) => q.id === qid) + 1 || sameKind.length + 1
+        : sameKind.length + 1
+
     const payload: Record<string, unknown> = {
       id: qid,
       unit_id: unitId,
@@ -79,10 +136,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       stem: stem.trim(),
       options,
       explanation: explanation.trim(),
-      sort_order: (() => {
-        const idx = items.findIndex((q) => q.id === qid)
-        return idx >= 0 ? idx + 1 : items.length + 1
-      })(),
+      sort_order: sortOrderForKind(kind, kindIndex),
     }
     if (kind === 'single' || kind === 'judgment') {
       payload.correct_single = singleAns
@@ -107,7 +161,9 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     setId('')
     setStem('')
     setExplanation('')
-    await reload()
+    setItems(await loadMergedQuestionsForUnit(unitId))
+    setLoading(false)
+    setListOpen(true)
   }
 
   async function handleDelete(questionId: string) {
@@ -119,7 +175,8 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       p_question_id: questionId,
     })
     if (err) setError(err.message)
-    else await reload()
+    else setItems(await loadMergedQuestionsForUnit(unitId))
+    setLoading(false)
   }
 
   function toggleMulti(i: number) {
@@ -146,7 +203,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       <form className="card form-card admin-q-form" onSubmit={handleSave}>
         <h3>录入题目</h3>
         <label>
-          题目 ID（可留空自动生成）
+          题目 ID（可留空，按题型自动生成如 …-single-01）
           <input value={id} onChange={(e) => setId(e.target.value)} />
         </label>
         <label>
@@ -238,27 +295,40 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         </button>
       </form>
 
-      <ul className="admin-list">
-        {items.map((q, qi) => (
-          <li key={q.id} className="admin-row card">
-            <div>
-              <strong>{qi + 1}.</strong>{' '}
-              <strong>
-                {q.kind === 'multiple'
-                  ? '【多选】'
-                  : q.kind === 'judgment'
-                    ? '【判断】'
-                    : '【单选】'}
-              </strong>{' '}
-              {q.stem.slice(0, 48)}
-            </div>
-            <button type="button" className="btn ghost small danger" onClick={() => void handleDelete(q.id)}>
-              删除
-            </button>
-          </li>
-        ))}
-      </ul>
-      {items.length === 0 ? <p className="muted admin-empty">该单元暂无云端题目</p> : null}
+      <div className="admin-q-list-wrap">
+        <button
+          type="button"
+          className="btn ghost small admin-q-list-toggle"
+          onClick={() => setListOpen((o) => !o)}
+        >
+          {listOpen ? '▼ 收起本题库题目' : '▶ 展开本题库题目'}（共 {items.length} 题，云端+静态）
+        </button>
+        {listOpen ? (
+          <>
+            {items.length === 0 ? (
+              <p className="muted admin-empty">该单元暂无题目</p>
+            ) : (
+              <>
+                <QuestionListBlock
+                  kind="single"
+                  questions={grouped.single}
+                  onDelete={handleDelete}
+                />
+                <QuestionListBlock
+                  kind="multiple"
+                  questions={grouped.multiple}
+                  onDelete={handleDelete}
+                />
+                <QuestionListBlock
+                  kind="judgment"
+                  questions={grouped.judgment}
+                  onDelete={handleDelete}
+                />
+              </>
+            )}
+          </>
+        ) : null}
+      </div>
     </div>
   )
 }

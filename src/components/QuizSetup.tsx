@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useQuizUnit } from '../hooks/useQuizUnit'
+import { groupQuestionsByKind, KIND_LABELS } from '../lib/question-display'
 import { countByStar, filterQuestions, starLabel } from '../lib/question-filter'
 import { listWrongByUnit } from '../lib/wrong-book'
-import type { QuizLaunchConfig, StarFilter, StarLevel } from '../types'
+import type {
+  QuestionKind,
+  QuestionKindFilter,
+  QuizLaunchConfig,
+  StarFilter,
+  StarLevel,
+} from '../types'
 import { STAR_LEVELS } from '../types'
 
 type Props = {
@@ -11,9 +18,12 @@ type Props = {
   onBack: () => void
 }
 
+const KIND_FILTERS: QuestionKindFilter[] = ['all', 'single', 'multiple', 'judgment']
+
 export function QuizSetup({ unitId, onStart, onBack }: Props) {
-  const { unit, loading } = useQuizUnit(unitId)
+  const { unit, loading, refetch } = useQuizUnit(unitId)
   const [selectedStars, setSelectedStars] = useState<StarLevel[]>([])
+  const [kindFilter, setKindFilter] = useState<QuestionKindFilter>('all')
   const [wrongOnly, setWrongOnly] = useState(false)
 
   const allQuestions = unit?.questions ?? []
@@ -25,10 +35,20 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
   const starFilter: StarFilter =
     selectedStars.length === 0 ? 'all' : [...selectedStars].sort()
 
+  const kindCounts = useMemo(() => {
+    const g = groupQuestionsByKind(allQuestions)
+    return {
+      all: allQuestions.length,
+      single: g.single.length,
+      multiple: g.multiple.length,
+      judgment: g.judgment.length,
+    }
+  }, [allQuestions])
+
   const preview = useMemo(() => {
     const ids = wrongOnly ? wrongInUnit : undefined
-    return filterQuestions(allQuestions, starFilter, ids)
-  }, [allQuestions, starFilter, wrongOnly, wrongInUnit])
+    return filterQuestions(allQuestions, starFilter, ids, kindFilter)
+  }, [allQuestions, starFilter, wrongOnly, wrongInUnit, kindFilter])
 
   const starCounts = useMemo(() => countByStar(allQuestions), [allQuestions])
 
@@ -61,6 +81,7 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
     onStart({
       unitId,
       starFilter,
+      kindFilter,
       wrongOnly: wrongOnly && wrongInUnit.length > 0,
       questionIds: wrongOnly ? wrongInUnit : undefined,
     })
@@ -71,6 +92,11 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
       ? unit.section?.title ?? unit.title
       : unit.topicTitle
 
+  function kindFilterLabel(k: QuestionKindFilter): string {
+    if (k === 'all') return '全部题型'
+    return KIND_LABELS[k]
+  }
+
   return (
     <div className="screen setup">
       <header className="quiz-header">
@@ -79,11 +105,34 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
         </button>
         <div className="quiz-meta">
           <span>{title}</span>
-          <span className="muted">选择题练习设置</span>
+          <span className="muted">练习设置</span>
         </div>
       </header>
 
       <article className="card setup-card">
+        <div className="setup-toolbar">
+          <h3>题型</h3>
+          <button type="button" className="btn ghost small" onClick={() => refetch()}>
+            刷新题库
+          </button>
+        </div>
+        <p className="muted setup-hint">
+          单选、多选、判断题分开编号；可选只练某一种。录题后点「刷新题库」或重新进入本页即可更新。
+        </p>
+        <div className="star-chips">
+          {KIND_FILTERS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={kindFilter === k ? 'star-chip active' : 'star-chip'}
+              onClick={() => setKindFilter(k)}
+            >
+              {kindFilterLabel(k)}
+              <span className="chip-count">{kindCounts[k]}</span>
+            </button>
+          ))}
+        </div>
+
         <h3>星级筛选</h3>
         <p className="muted setup-hint">
           题目录入后，由老师在后台标注 1～5 星；未标星的题只在「不限星级」时出现。
@@ -123,6 +172,11 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
 
         <p className="setup-summary">
           将练习 <strong>{preview.length}</strong> 题
+          {kindFilter !== 'all' ? (
+            <>
+              （{KIND_LABELS[kindFilter as QuestionKind]}）
+            </>
+          ) : null}
           {allQuestions.length === 0 ? '（题目尚未录入）' : null}
         </p>
 

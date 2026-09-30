@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { allChapters } from '../data/curriculum'
 import { adminGetStudentReport, type AdminStudentReport } from '../lib/admin-api'
+import { labelForUnitId } from '../lib/unit-label'
 
 type Props = {
   adminPass: string
@@ -13,6 +14,7 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
   const [report, setReport] = useState<AdminStudentReport | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showInProgress, setShowInProgress] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -33,10 +35,15 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
   }, [adminPass, profileId])
 
   const progressEntries = report
-    ? Object.entries(report.progress).filter(
-        ([, p]) => p.answeredIds.length > 0,
-      )
+    ? Object.entries(report.progress).filter(([, p]) => p.answeredIds.length > 0)
     : []
+
+  const { finishedSessions, inProgressSessions } = useMemo(() => {
+    if (!report) return { finishedSessions: [], inProgressSessions: [] }
+    const finished = report.recent_sessions.filter((s) => s.ended_at)
+    const open = report.recent_sessions.filter((s) => !s.ended_at)
+    return { finishedSessions: finished, inProgressSessions: open }
+  }, [report])
 
   return (
     <div className="admin-student-report">
@@ -54,22 +61,28 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
         <>
           <section className="card admin-report-block">
             <h4>总览</h4>
+            <p className="muted small admin-report-hint">
+              按「题」去重：每道题只要曾经做对过一次，就算进总正确率。
+            </p>
             <p>
-              去重做题：{report.question_stats.attempted} 题 · 至少点对{' '}
+              已做过 {report.question_stats.attempted} 题 · 至少点对{' '}
               {report.question_stats.ever_correct} 题 · 总正确率{' '}
               <strong>{report.question_stats.accuracy}%</strong>
             </p>
             {report.saved_updated_at ? (
               <p className="muted small">
-                云端同步：{new Date(report.saved_updated_at).toLocaleString()}
+                错题本/进度同步：{new Date(report.saved_updated_at).toLocaleString()}
               </p>
             ) : null}
           </section>
 
           <section className="card admin-report-block">
-            <h4>章总分（已上榜）</h4>
+            <h4>章榜得分</h4>
+            <p className="muted small admin-report-hint">
+              只有该章每一道题都至少做过 1 次，才会生成章得分并上榜；只练某一节不会出现这里。
+            </p>
             {report.chapter_scores.length === 0 ? (
-              <p className="muted">暂无</p>
+              <p className="muted">暂无（尚未完成整章）</p>
             ) : (
               <ul className="admin-report-list">
                 {report.chapter_scores.map((s) => (
@@ -84,21 +97,43 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
           </section>
 
           <section className="card admin-report-block">
-            <h4>最近练习（当次分，不进榜）</h4>
-            {report.recent_sessions.length === 0 ? (
+            <h4>已结束的练习</h4>
+            <p className="muted small admin-report-hint">
+              学生点了「结束练习」后的当次得分，不进章榜。数字为：得分（做对/已做）。
+            </p>
+            {finishedSessions.length === 0 ? (
               <p className="muted">暂无</p>
             ) : (
               <ul className="admin-report-list">
-                {report.recent_sessions.map((s) => (
+                {finishedSessions.map((s) => (
                   <li key={s.id}>
-                    {s.ended_at
-                      ? `当次 ${s.session_score ?? '—'} 分（${s.correct_count}/${s.answered_count}）`
-                      : '进行中的练习'}
-                    {s.unit_id ? ` · ${s.unit_id}` : ''}
+                    当次 {s.session_score ?? '—'} 分（{s.correct_count}/{s.answered_count}）
+                    <br />
+                    <span className="muted small">{labelForUnitId(s.unit_id)}</span>
                   </li>
                 ))}
               </ul>
             )}
+            {inProgressSessions.length > 0 ? (
+              <div className="admin-report-inprogress">
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  onClick={() => setShowInProgress((v) => !v)}
+                >
+                  {showInProgress ? '隐藏' : '显示'}未结束的记录（{inProgressSessions.length}）
+                </button>
+                {showInProgress ? (
+                  <ul className="admin-report-list muted">
+                    {inProgressSessions.map((s) => (
+                      <li key={s.id}>
+                        进行中 · {labelForUnitId(s.unit_id)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <section className="card admin-report-block">
@@ -120,14 +155,15 @@ export function AdminStudentReport({ adminPass, profileId, nickname, onBack }: P
           </section>
 
           <section className="card admin-report-block">
-            <h4>本地进度单元（{progressEntries.length}）</h4>
+            <h4>各单元刷题进度</h4>
             {progressEntries.length === 0 ? (
               <p className="muted">暂无</p>
             ) : (
               <ul className="admin-report-list">
                 {progressEntries.map(([unitId, p]) => (
                   <li key={unitId}>
-                    {unitId}：已做 {p.answeredIds.length}，对 {p.correctIds.length}
+                    {labelForUnitId(unitId)}：已做 {p.answeredIds.length}，对{' '}
+                    {p.correctIds.length}
                   </li>
                 ))}
               </ul>

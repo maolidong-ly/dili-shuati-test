@@ -7,7 +7,13 @@ import {
 import { useQuizUnit } from '../hooks/useQuizUnit'
 import { filterQuestions, starLabel } from '../lib/question-filter'
 import { correctIndicesForDisplay, isAnswerCorrect } from '../lib/question-grade'
-import { formatStemWithIndex } from '../lib/question-display'
+import {
+  formatStemWithIndex,
+  indexWithinKind,
+  KIND_LABELS,
+  questionKind,
+  sortQuestionsByKind,
+} from '../lib/question-display'
 import { getEffectiveStars } from '../lib/question-meta'
 import {
   finishCloudPracticeSession,
@@ -67,10 +73,13 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       }))
     }
     if (!unit) return []
-    const filtered = filterQuestions(
-      unit.questions,
-      launch.starFilter,
-      launch.questionIds,
+    const filtered = sortQuestionsByKind(
+      filterQuestions(
+        unit.questions,
+        launch.starFilter,
+        launch.questionIds,
+        launch.kindFilter ?? 'all',
+      ),
     )
     const label = getQuizUnitLabel(unit)
     return filtered.map((question) => ({
@@ -175,7 +184,11 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const { question, unitId: answerUnitId, unitLabel } = current
   const totals = progressTotals(progress)
   const stars = getEffectiveStars(question)
-  const qKind = question.kind ?? 'single'
+  const qKind = questionKind(question)
+  const kindIndex = indexWithinKind(
+    activeQuestions.map((a) => a.question),
+    question.id,
+  )
   const isMulti = qKind === 'multiple'
   const isJudgment = qKind === 'judgment'
   const correctIdx = correctIndicesForDisplay(question)
@@ -304,7 +317,8 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         <div className="quiz-meta">
           <span>{unitLabel}</span>
           <span>
-            第 {index + 1}/{activeQuestions.length} 题 · 正确率{' '}
+            {KIND_LABELS[qKind]} 第 {kindIndex} 题 · 本次 {index + 1}/{activeQuestions.length}{' '}
+            · 正确率{' '}
             {totals.answered === 0
               ? '—'
               : `${Math.round(totals.accuracy * 100)}%`}
@@ -320,7 +334,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         ) : null}
         <p className="stem">
           {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
-          {formatStemWithIndex(index + 1, question.stem)}
+          {formatStemWithIndex(kindIndex, question.stem)}
         </p>
         <ul className={`options${isJudgment ? ' options-judgment' : ''}`}>
           {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (
