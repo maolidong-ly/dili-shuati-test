@@ -1,4 +1,4 @@
-import type { AdminProfileRow, WrongQuestionEntry } from '../types'
+import type { AdminProfileRow, StarLevel, WrongQuestionEntry } from '../types'
 import { getSupabase } from './supabase'
 
 export type AdminStudentReport = {
@@ -81,6 +81,21 @@ export type AdminQuestionAttemptRow = {
   attempt_count: number
   ever_correct: boolean
   last_answered_at: string | null
+}
+
+export async function adminSetQuestionStars(
+  adminPassphrase: string,
+  questionId: string,
+  stars: StarLevel,
+): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('cloud_not_configured')
+  const { error } = await supabase.rpc('set_question_stars', {
+    p_admin_passphrase: adminPassphrase,
+    p_question_id: questionId,
+    p_stars: stars,
+  })
+  if (error) throw new Error(error.message)
 }
 
 export async function adminGetStudentChapterAttempts(

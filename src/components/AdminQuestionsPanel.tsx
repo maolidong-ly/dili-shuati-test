@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { listUnitOptions } from '../data/curriculum/unit-options'
+import {
+  listChapterUnitOptions,
+  listTopicUnitOptions,
+} from '../data/curriculum/unit-options'
+import { adminSetQuestionStars } from '../lib/admin-api'
 import { loadMergedQuestionsForUnit } from '../lib/load-unit-questions'
+import {
+  applyQuestionMeta,
+  getEffectiveStars,
+  refreshQuestionMetaFromCloud,
+} from '../lib/question-meta'
 import {
   groupQuestionsByKind,
   KIND_LABELS,
@@ -10,10 +19,12 @@ import {
   sortOrderForKind,
 } from '../lib/question-display'
 import { getSupabase } from '../lib/supabase'
-import type { ChoiceQuestion, QuestionKind } from '../types'
+import type { ChoiceQuestion, QuestionKind, StarLevel } from '../types'
+import { starLabel } from '../lib/question-filter'
 
 type Props = {
   adminPass: string
+  catalogKind: 'chapter' | 'topic'
 }
 
 function QuestionListBlock({
@@ -41,6 +52,9 @@ function QuestionListBlock({
                 {qi + 1}. {q.stem.slice(0, 56)}
                 {q.stem.length > 56 ? '…' : ''}
               </strong>
+              {q.stars ? (
+                <p className="admin-q-stars muted small">{starLabel(q.stars)}</p>
+              ) : null}
               <p className="muted small admin-q-id">{q.id}</p>
             </div>
             <div className="admin-row-actions">
@@ -66,9 +80,13 @@ function QuestionListBlock({
   )
 }
 
-export function AdminQuestionsPanel({ adminPass }: Props) {
-  const units = useMemo(() => listUnitOptions(), [])
-  const [unitId, setUnitId] = useState(units[0]?.id ?? '')
+export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
+  const units = useMemo(
+    () =>
+      catalogKind === 'chapter' ? listChapterUnitOptions() : listTopicUnitOptions(),
+    [catalogKind],
+  )
+  const [unitId, setUnitId] = useState('')
   const [items, setItems] = useState<ChoiceQuestion[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -85,8 +103,16 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
   const [multiAns, setMultiAns] = useState<number[]>([])
   const [explanation, setExplanation] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [stars, setStars] = useState<StarLevel>(3)
 
   const grouped = useMemo(() => groupQuestionsByKind(items), [items])
+  const isTopic = catalogKind === 'topic'
+
+  useEffect(() => {
+    setUnitId(units[0]?.id ?? '')
+    resetForm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogKind, units])
 
   useEffect(() => {
     void reload()
@@ -98,7 +124,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     setLoading(true)
     setError('')
     try {
-      setItems(await loadMergedQuestionsForUnit(unitId))
+      setItems(applyQuestionMeta(await loadMergedQuestionsForUnit(unitId)))
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -118,6 +144,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     setSingleAns(0)
     setMultiAns([])
     setKind('single')
+    setStars(3)
   }
 
   function loadForEdit(q: ChoiceQuestion) {
@@ -142,6 +169,9 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     if (k === 'judgment') {
       setOpt0(opts[0] || '对')
       setOpt1(opts[1] || '错')
+    }
+    if (isTopic) {
+      setStars(getEffectiveStars(q) ?? 3)
     }
     setListOpen(true)
     setError('')
@@ -212,8 +242,18 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       setLoading(false)
       return
     }
+    if (isTopic) {
+      try {
+        await adminSetQuestionStars(adminPass, qid, stars)
+        await refreshQuestionMetaFromCloud()
+      } catch (starErr) {
+        setError(starErr instanceof Error ? starErr.message : '星级保存失败')
+        setLoading(false)
+        return
+      }
+    }
     resetForm()
-    setItems(await loadMergedQuestionsForUnit(unitId))
+    setItems(applyQuestionMeta(await loadMergedQuestionsForUnit(unitId)))
     setLoading(false)
     setListOpen(true)
   }
@@ -227,7 +267,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       p_question_id: questionId,
     })
     if (err) setError(err.message)
-    else setItems(await loadMergedQuestionsForUnit(unitId))
+    else setItems(applyQuestionMeta(await loadMergedQuestionsForUnit(unitId)))
     setLoading(false)
   }
 
@@ -253,7 +293,12 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
       </div>
 
       <form className="card form-card admin-q-form" onSubmit={handleSave}>
-        <h3>{editingId ? '修改题目' : '录入题目'}</h3>
+        <h3>
+          {editingId ? '修改题目' : '录入题目'}
+          <span className="muted small admin-form-kind">
+            {isTopic ? '考点' : '章节'}
+          </span>
+        </h3>
         {editingId ? (
           <p className="muted small">
             正在编辑 <code>{editingId}</code>
@@ -345,6 +390,22 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
             )}
           </>
         )}
+        {isTopic ? (
+          <label>
+            难度星级（1～5，考点必填）
+            <select
+              value={stars}
+              onChange={(e) => setStars(Number(e.target.value) as StarLevel)}
+              required
+            >
+              {([1, 2, 3, 4, 5] as StarLevel[]).map((n) => (
+                <option key={n} value={n}>
+                  {starLabel(n)}（{n} 星）
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
           解析（可选）
           <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={2} />

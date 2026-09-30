@@ -173,7 +173,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
           <p className="muted">
             {unit && unit.questions.length === 0
               ? '本题库还在录入中，请老师在后台录题。'
-              : '当前筛选条件下没有题目，请返回调整星级或错题筛选。'}
+              : '当前筛选条件下没有题目，请返回调整题型或错题筛选。'}
           </p>
         </article>
       </div>
@@ -327,7 +327,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       </header>
 
       <article className="card question-card">
-        {stars ? (
+        {unit?.mode === 'topic' && stars ? (
           <p className="q-stars" aria-label={`${stars} 星`}>
             {starLabel(stars)}
           </p>

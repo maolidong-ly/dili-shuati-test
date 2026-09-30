@@ -6,8 +6,9 @@ html[data-theme='indigo'] {
     'Microsoft YaHei',
     system-ui,
     sans-serif;
-  line-height: 1.5;
+  line-height: 1.55;
   font-weight: 400;
+  font-size: 15px;
   color: #0f172a;
   font-synthesis: none;
   text-rendering: optimizeLegibility;

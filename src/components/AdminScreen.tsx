@@ -21,6 +21,7 @@ export function AdminScreen({ onClose }: Props) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [rows, setRows] = useState<AdminProfileRow[]>([])
   const [section, setSection] = useState<'accounts' | 'questions'>('accounts')
+  const [questionCatalog, setQuestionCatalog] = useState<'chapter' | 'topic'>('chapter')
   const [viewStudent, setViewStudent] = useState<AdminProfileRow | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'disabled'>('all')
   const [error, setError] = useState('')
@@ -154,7 +155,25 @@ export function AdminScreen({ onClose }: Props) {
           onBack={() => setViewStudent(null)}
         />
       ) : section === 'questions' ? (
-        <AdminQuestionsPanel adminPass={adminPass} />
+        <>
+          <div className="gate-tabs admin-sub-tabs">
+            <button
+              type="button"
+              className={questionCatalog === 'chapter' ? 'gate-tab active' : 'gate-tab'}
+              onClick={() => setQuestionCatalog('chapter')}
+            >
+              章节录题
+            </button>
+            <button
+              type="button"
+              className={questionCatalog === 'topic' ? 'gate-tab active' : 'gate-tab'}
+              onClick={() => setQuestionCatalog('topic')}
+            >
+              考点录题
+            </button>
+          </div>
+          <AdminQuestionsPanel adminPass={adminPass} catalogKind={questionCatalog} />
+        </>
       ) : (
         <>
       <div className="admin-toolbar">
