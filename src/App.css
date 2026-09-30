@@ -1015,6 +1015,27 @@
   margin-top: 0.5rem;
 }
 
+.options-judgment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.options-judgment li {
+  list-style: none;
+}
+
+.judgment-option {
+  justify-content: center;
+  min-height: 3.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.judgment-label {
+  letter-spacing: 0.08em;
+}
+
 .admin-report-block {
   margin: 0.75rem 1rem;
   padding: 1rem;

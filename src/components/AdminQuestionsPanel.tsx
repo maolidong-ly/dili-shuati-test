@@ -48,8 +48,8 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
   function onKindChange(next: QuestionKind) {
     setKind(next)
     if (next === 'judgment') {
-      setOpt0('正确')
-      setOpt1('错误')
+      setOpt0('对')
+      setOpt1('错')
       setOpt2('')
       setOpt3('')
       setSingleAns(0)
@@ -63,7 +63,7 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
     if (!supabase) return
     let options: string[]
     if (kind === 'judgment') {
-      options = [opt0.trim() || '正确', opt1.trim() || '错误']
+      options = [opt0.trim() || '对', opt1.trim() || '错']
     } else {
       options = [opt0, opt1, opt2, opt3].map((s) => s.trim())
       if (options.some((o) => !o)) {
@@ -161,18 +161,18 @@ export function AdminQuestionsPanel({ adminPass }: Props) {
         {kind === 'judgment' ? (
           <>
             <label>
-              选项 A
+              选项「对」
               <input value={opt0} onChange={(e) => setOpt0(e.target.value)} required />
             </label>
             <label>
-              选项 B
+              选项「错」
               <input value={opt1} onChange={(e) => setOpt1(e.target.value)} required />
             </label>
             <label>
               正确答案
               <select value={singleAns} onChange={(e) => setSingleAns(Number(e.target.value))}>
-                <option value={0}>A（{opt0 || '正确'}）</option>
-                <option value={1}>B（{opt1 || '错误'}）</option>
+                <option value={0}>{opt0 || '对'}</option>
+                <option value={1}>{opt1 || '错'}</option>
               </select>
             </label>
           </>

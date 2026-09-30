@@ -287,6 +287,13 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const atLast = index >= activeQuestions.length - 1
   const canSubmit = isMulti ? selectedMulti.length > 0 : selectedSingle !== null
 
+  function judgmentButtonLabel(index: number, text: string): string {
+    const t = text.trim()
+    if (t === '正确' || t === '对') return '对'
+    if (t === '错误' || t === '错') return '错'
+    return t || (index === 0 ? '对' : '错')
+  }
+
   return (
     <div className="screen quiz">
       <header className="quiz-header">
@@ -314,17 +321,23 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
           {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
           {question.stem}
         </p>
-        <ul className="options">
+        <ul className={`options${isJudgment ? ' options-judgment' : ''}`}>
           {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (
             <li key={`${question.id}-${i}`}>
               <button
                 type="button"
-                className={optionClass(i)}
+                className={`${optionClass(i)}${isJudgment ? ' judgment-option' : ''}`}
                 disabled={revealed}
                 onClick={() => onPickOption(i)}
               >
-                <span className="opt-label">{String.fromCharCode(65 + i)}</span>
-                <span>{text}</span>
+                {isJudgment ? (
+                  <span className="judgment-label">{judgmentButtonLabel(i, text)}</span>
+                ) : (
+                  <>
+                    <span className="opt-label">{String.fromCharCode(65 + i)}</span>
+                    <span>{text}</span>
+                  </>
+                )}
               </button>
             </li>
           ))}
