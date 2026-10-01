@@ -1,5 +1,13 @@
 const KEY = 'geoquiz.sound.v1'
 
+const base = `${import.meta.env.BASE_URL}sounds/`
+
+const SOUND = {
+  click: `${base}dianjiynxiao.mp3`,
+  loginSuccess: `${base}dengluchenggong.mp3`,
+  wrongOption: `${base}xuanxiangcuowu.wav`,
+} as const
+
 export function isSoundEnabled(): boolean {
   try {
     const raw = localStorage.getItem(KEY)
@@ -14,36 +22,30 @@ export function setSoundEnabled(on: boolean) {
   localStorage.setItem(KEY, on ? '1' : '0')
 }
 
-let audioCtx: AudioContext | null = null
-
-function getCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null
-  if (!audioCtx) {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    if (!Ctx) return null
-    audioCtx = new Ctx()
+function playFile(src: string) {
+  if (!isSoundEnabled()) return
+  try {
+    const audio = new Audio(src)
+    audio.volume = 0.85
+    void audio.play().catch(() => {})
+  } catch {
+    /* ignore */
   }
-  return audioCtx
 }
 
-/** 轻量 UI 点击音 */
+/** 按钮 / 导航等点击 */
 export function playUiClick() {
-  if (!isSoundEnabled()) return
-  const ctx = getCtx()
-  if (!ctx) return
-  if (ctx.state === 'suspended') void ctx.resume()
-  const t = ctx.currentTime
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(880, t)
-  osc.frequency.exponentialRampToValueAtTime(520, t + 0.06)
-  gain.gain.setValueAtTime(0.08, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.start(t)
-  osc.stop(t + 0.09)
+  playFile(SOUND.click)
+}
+
+/** 登录成功 */
+export function playLoginSuccess() {
+  playFile(SOUND.loginSuccess)
+}
+
+/** 提交后答错 */
+export function playWrongOption() {
+  playFile(SOUND.wrongOption)
 }
 
 export function bindGlobalUiClickSound() {
@@ -51,7 +53,10 @@ export function bindGlobalUiClickSound() {
   function onClick(e: MouseEvent) {
     const el = e.target as HTMLElement | null
     if (!el) return
-    const interactive = el.closest('button, a, .option, .filter-chip, .q-picker-cell, .nav')
+    if (el.closest('[data-silent-click]')) return
+    const interactive = el.closest(
+      'button, a, .option, .filter-chip, .q-picker-cell, .nav, .section-row, .chapter-toggle',
+    )
     if (interactive) playUiClick()
   }
   document.addEventListener('click', onClick, true)

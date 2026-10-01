@@ -16,6 +16,8 @@ type Props = {
   /** 同单元题目列表，用于题型内序号 */
   allInUnit?: ChoiceQuestion[]
   showAnswer?: boolean
+  /** 错题本：折叠解析；后台查看：直接展示 */
+  explainDisplay?: 'off' | 'toggle' | 'open'
   className?: string
 }
 
@@ -23,9 +25,10 @@ export function QuestionReadonlyCard({
   question,
   allInUnit,
   showAnswer = true,
+  explainDisplay = 'off',
   className = '',
 }: Props) {
-  const [explainOpen, setExplainOpen] = useState(false)
+  const [explainOpen, setExplainOpen] = useState(explainDisplay === 'open')
   const pool = allInUnit?.length ? sortQuestionsByKind(allInUnit) : [question]
   const qKind = questionKind(question)
   const kindIndex = indexWithinKind(pool, question.id)
@@ -65,16 +68,20 @@ export function QuestionReadonlyCard({
           )
         })}
       </ul>
-      {question.explanation ? (
+      {question.explanation && explainDisplay !== 'off' ? (
         <div className="explain-block">
-          <button
-            type="button"
-            className="btn ghost small"
-            onClick={() => setExplainOpen((o) => !o)}
-          >
-            {explainOpen ? '收起解析' : '查看解析'}
-          </button>
-          {explainOpen ? <p className="explain">{question.explanation}</p> : null}
+          {explainDisplay === 'toggle' ? (
+            <button
+              type="button"
+              className="btn ghost small"
+              onClick={() => setExplainOpen((o) => !o)}
+            >
+              {explainOpen ? '收起解析' : '查看解析'}
+            </button>
+          ) : null}
+          {(explainDisplay === 'open' || explainOpen) ? (
+            <p className="explain">{question.explanation}</p>
+          ) : null}
         </div>
       ) : null}
     </article>

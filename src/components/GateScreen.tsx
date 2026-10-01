@@ -15,6 +15,7 @@ import {
   saveProfile,
 } from '../lib/storage'
 import { clearLocalAttempts } from '../lib/question-attempts'
+import { playLoginSuccess } from '../lib/sound'
 import { clearWrongBook } from '../lib/wrong-book'
 import type { LocalProfile } from '../types'
 
@@ -56,6 +57,7 @@ export function GateScreen({ onReady }: Props) {
       setInfo('已识别本机昵称，恢复本地进度')
     }
 
+    playLoginSuccess()
     onReady(profile)
   }
 

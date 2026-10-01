@@ -91,6 +91,7 @@ function QuestionListBlock({
               <QuestionReadonlyCard
                 question={q}
                 allInUnit={allInUnit}
+                explainDisplay="open"
                 className="admin-q-preview"
               />
             ) : null}

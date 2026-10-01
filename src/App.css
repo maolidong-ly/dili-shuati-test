@@ -378,52 +378,118 @@ html[data-theme='midnight'] .form-card textarea {
   letter-spacing: 0.05em;
 }
 
-.wrong-book h2 {
-  margin: 0.5rem 0;
-  color: #1e3a8a;
+.wrong-book {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.wrong-head {
+.wrong-book-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.85rem;
+}
+
+.wrong-book-hero h2 {
+  margin: 0 0 0.25rem;
+  color: var(--app-heading);
+  font-size: 1.2rem;
+}
+
+.wrong-book-sub {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.wrong-book-total {
+  margin: 0;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.wrong-book-total-num {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #ea580c;
+  line-height: 1.1;
+}
+
+.wrong-book-tabs .tab-count {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 35%);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.wrong-summary {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.wrong-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.wrong-summary-action {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.wrong-empty {
+  margin-top: 0.25rem;
 }
 
 .wrong-groups {
   list-style: none;
   padding: 0;
-  margin: 0.75rem 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
 }
 
+.wrong-group {
+  padding: 0.85rem 1rem 0.65rem;
+}
+
 .wrong-group-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgb(var(--app-card-shadow) / 0.35);
+}
+
+.wrong-group-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.wrong-unit-label {
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .wrong-items {
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 0.84rem;
-}
-
-.wrong-items li {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.35rem 0;
-  border-top: 1px solid #f1f5f9;
-}
-
-.wrong-stem {
-  flex: 1;
-  color: #334155;
 }
 
 .link-btn.block {
@@ -1661,7 +1727,7 @@ html[data-theme='midnight'] .form-card textarea {
 }
 
 .wrong-item-wrap {
-  border-bottom: 1px solid rgb(var(--app-card-shadow) / 0.25);
+  border-bottom: 1px solid rgb(var(--app-card-shadow) / 0.22);
 }
 
 .wrong-item-wrap:last-child {
@@ -1670,11 +1736,11 @@ html[data-theme='midnight'] .form-card textarea {
 
 .wrong-item-toggle {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.25rem;
-  padding: 0.65rem 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0;
   border: none;
   background: transparent;
   text-align: left;
@@ -1683,10 +1749,79 @@ html[data-theme='midnight'] .form-card textarea {
   color: inherit;
 }
 
+.wrong-item-toggle.open {
+  padding-bottom: 0.45rem;
+}
+
+.wrong-item-index {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 8px;
+  background: var(--app-input-bg);
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wrong-item-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.wrong-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
+
+.wrong-count-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #b91c1c;
+  background: #fef2f2;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+}
+
+.wrong-expand-hint {
+  font-size: 0.72rem;
+  color: var(--app-muted);
+}
+
+.wrong-chevron {
+  color: var(--app-muted);
+  font-size: 0.85rem;
+}
+
+.wrong-item-panel {
+  padding: 0 0 0.75rem 2.3rem;
+}
+
 .wrong-item-detail {
-  margin-bottom: 0.65rem;
+  margin: 0;
+  box-shadow: none;
+  border: 1px solid rgb(var(--app-card-shadow) / 0.35);
 }
 
 .wrong-item-loading {
-  padding: 0 0 0.65rem;
+  padding: 0 0 0.5rem;
+}
+
+.wrong-clear {
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.wrong-stem {
+  display: block;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--app-text);
 }

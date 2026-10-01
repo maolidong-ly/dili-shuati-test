@@ -21,6 +21,7 @@ import {
   startCloudPracticeSession,
 } from '../lib/practice-session'
 import { incrementLocalAttempt } from '../lib/question-attempts'
+import { playWrongOption } from '../lib/sound'
 import { getChapterProgress, progressTotals, recordAnswer } from '../lib/storage'
 import {
   inferWrongBookKind,
@@ -113,7 +114,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const [selectedSingle, setSelectedSingle] = useState<number | null>(null)
   const [selectedMulti, setSelectedMulti] = useState<number[]>([])
   const [revealed, setRevealed] = useState(false)
-  const [explainOpen, setExplainOpen] = useState(false)
   const [sessionAnswered, setSessionAnswered] = useState(0)
   const [sessionCorrect, setSessionCorrect] = useState(0)
 
@@ -122,7 +122,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
     setSelectedSingle(null)
     setSelectedMulti([])
     setRevealed(false)
-    setExplainOpen(false)
   }, [launch.unitId, launch.startQuestionId, launch.kindFilter, launch.starFilter])
 
   const chapterIdForCloud =
@@ -225,6 +224,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
     setProgress(next)
 
     if (!correct) {
+      playWrongOption()
       recordWrongAttempt({
         questionId: question.id,
         unitId: answerUnitId,
@@ -253,7 +253,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       )
     }
 
-    setExplainOpen(false)
     setRevealed(true)
     onProgress()
   }
@@ -285,7 +284,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
-      setExplainOpen(false)
     }
   }
 
@@ -295,7 +293,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
-      setExplainOpen(false)
     }
   }
 
@@ -380,19 +377,6 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
             </li>
           ))}
         </ul>
-
-        {revealed && question.explanation ? (
-          <div className="explain-block">
-            <button
-              type="button"
-              className="btn ghost small"
-              onClick={() => setExplainOpen((o) => !o)}
-            >
-              {explainOpen ? '收起解析' : '查看解析'}
-            </button>
-            {explainOpen ? <p className="explain">{question.explanation}</p> : null}
-          </div>
-        ) : null}
 
         <div className="quiz-actions">
           <button

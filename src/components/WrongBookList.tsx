@@ -52,13 +52,17 @@ export function WrongBookList({ onStart }: Props) {
   }, [kind, tick])
 
   const kindLabel = kind === 'chapter' ? '章节' : '考点'
+  const totalWrong = chapterCount + topicCount
 
-  const byUnit = new Map<string, typeof entries>()
-  for (const e of entries) {
-    const list = byUnit.get(e.unitId) ?? []
-    list.push(e)
-    byUnit.set(e.unitId, list)
-  }
+  const byUnit = useMemo(() => {
+    const map = new Map<string, typeof entries>()
+    for (const e of entries) {
+      const list = map.get(e.unitId) ?? []
+      list.push(e)
+      map.set(e.unitId, list)
+    }
+    return map
+  }, [entries])
 
   async function toggleExpand(questionId: string, unitId: string) {
     if (expandedId === questionId) {
@@ -77,11 +81,22 @@ export function WrongBookList({ onStart }: Props) {
 
   return (
     <section className="wrong-book">
-      <div className="wrong-head">
-        <h2>错题本</h2>
-      </div>
+      <header className="wrong-book-hero card">
+        <div>
+          <h2>错题本</h2>
+          <p className="muted small wrong-book-sub">
+            章节与考点分开收录 · 答对后自动移出 · 展开可看解析
+          </p>
+        </div>
+        {totalWrong > 0 ? (
+          <p className="wrong-book-total" aria-label={`共 ${totalWrong} 道错题`}>
+            <span className="wrong-book-total-num">{totalWrong}</span>
+            <span className="muted small">题</span>
+          </p>
+        ) : null}
+      </header>
 
-      <div className="practice-mode" role="tablist" aria-label="错题分类">
+      <div className="practice-mode wrong-book-tabs" role="tablist" aria-label="错题分类">
         <button
           type="button"
           role="tab"
@@ -92,7 +107,8 @@ export function WrongBookList({ onStart }: Props) {
             setExpandedId(null)
           }}
         >
-          章节错题{chapterCount > 0 ? ` (${chapterCount})` : ''}
+          章节
+          {chapterCount > 0 ? <span className="tab-count">{chapterCount}</span> : null}
         </button>
         <button
           type="button"
@@ -104,47 +120,55 @@ export function WrongBookList({ onStart }: Props) {
             setExpandedId(null)
           }}
         >
-          考点错题{topicCount > 0 ? ` (${topicCount})` : ''}
+          考点
+          {topicCount > 0 ? <span className="tab-count">{topicCount}</span> : null}
         </button>
       </div>
 
       {entries.length === 0 ? (
-        <article className="card empty-card">
+        <article className="card empty-card wrong-empty">
           <p className="muted">
-            {chapterCount === 0 && topicCount === 0
-              ? '还没有错题。按章节或按考点刷题时，答错的题会分别收录在这里。'
-              : `暂无${kindLabel}错题。在「刷题」里用对应模式练习，答错后会出现在这里。`}
+            {totalWrong === 0
+              ? '还没有错题。刷题时答错的题目会出现在这里，方便复习与查看解析。'
+              : `当前分类下暂无${kindLabel}错题，可切换到另一标签查看。`}
           </p>
         </article>
       ) : (
         <>
-          <p className="muted setup-hint">
-            {kindLabel}错题 · 共 {entries.length} 题 · 点题目展开 · 答对后自动移出
-          </p>
-
-          <button
-            type="button"
-            className="btn primary full"
-            onClick={() =>
-              onStart({
-                unitId: `cross-unit-wrong-${kind}`,
-                starFilter: 'all',
-                questionIds: entries.map((e) => e.questionId),
-                crossUnit: true,
-              })
-            }
-          >
-            重练全部{kindLabel}错题
-          </button>
+          <div className="wrong-summary card">
+            <div className="wrong-summary-text">
+              <strong>{kindLabel}错题</strong>
+              <span className="muted small">
+                {byUnit.size} 个单元 · {entries.length} 题
+              </span>
+            </div>
+            <button
+              type="button"
+              className="btn primary wrong-summary-action"
+              onClick={() =>
+                onStart({
+                  unitId: `cross-unit-wrong-${kind}`,
+                  starFilter: 'all',
+                  questionIds: entries.map((e) => e.questionId),
+                  crossUnit: true,
+                })
+              }
+            >
+              全部重练
+            </button>
+          </div>
 
           <ul className="wrong-groups">
             {[...byUnit.entries()].map(([unitId, items]) => (
               <li key={unitId} className="wrong-group card">
                 <div className="wrong-group-head">
-                  <strong>{items[0]?.unitLabel ?? unitId}</strong>
+                  <div className="wrong-group-title">
+                    <span className="wrong-unit-label">{items[0]?.unitLabel ?? unitId}</span>
+                    <span className="muted small">{items.length} 题</span>
+                  </div>
                   <button
                     type="button"
-                    className="btn small"
+                    className="btn small ghost"
                     onClick={() =>
                       onStart({
                         unitId,
@@ -154,39 +178,51 @@ export function WrongBookList({ onStart }: Props) {
                       })
                     }
                   >
-                    重练
+                    本单元重练
                   </button>
                 </div>
                 <ul className="wrong-items">
-                  {items.map((item) => {
+                  {items.map((item, idx) => {
                     const open = expandedId === item.questionId
                     const q = loadedQuestions[item.questionId]
                     return (
                       <li key={item.questionId} className="wrong-item-wrap">
                         <button
                           type="button"
-                          className="wrong-item-toggle"
+                          className={open ? 'wrong-item-toggle open' : 'wrong-item-toggle'}
                           aria-expanded={open}
                           onClick={() =>
                             void toggleExpand(item.questionId, item.unitId)
                           }
                         >
-                          <span className="wrong-stem">{item.stemPreview}</span>
-                          <span className="muted small">
-                            错 {item.wrongCount} 次 · {open ? '收起' : '展开'}
+                          <span className="wrong-item-index">{idx + 1}</span>
+                          <span className="wrong-item-body">
+                            <span className="wrong-stem">{item.stemPreview}</span>
+                            <span className="wrong-item-meta">
+                              <span className="wrong-count-pill">错 {item.wrongCount} 次</span>
+                              <span className="wrong-expand-hint">
+                                {open ? '收起题目' : '展开 · 可查看解析'}
+                              </span>
+                            </span>
+                          </span>
+                          <span className="wrong-chevron" aria-hidden>
+                            {open ? '▴' : '▾'}
                           </span>
                         </button>
                         {open ? (
-                          loadingId === item.questionId && !q ? (
-                            <p className="muted small wrong-item-loading">加载题目…</p>
-                          ) : q ? (
-                            <QuestionReadonlyCard
-                              question={q}
-                              className="wrong-item-detail"
-                            />
-                          ) : (
-                            <p className="muted small">题目暂无法加载</p>
-                          )
+                          <div className="wrong-item-panel">
+                            {loadingId === item.questionId && !q ? (
+                              <p className="muted small wrong-item-loading">加载题目…</p>
+                            ) : q ? (
+                              <QuestionReadonlyCard
+                                question={q}
+                                explainDisplay="toggle"
+                                className="wrong-item-detail"
+                              />
+                            ) : (
+                              <p className="muted small">题目暂无法加载</p>
+                            )}
+                          </div>
                         ) : null}
                       </li>
                     )
@@ -198,7 +234,7 @@ export function WrongBookList({ onStart }: Props) {
 
           <button
             type="button"
-            className="link-btn block"
+            className="link-btn block wrong-clear"
             onClick={() => {
               if (confirm(`确定清空全部${kindLabel}错题？`)) {
                 clearWrongBook(kind)
@@ -207,7 +243,7 @@ export function WrongBookList({ onStart }: Props) {
               }
             }}
           >
-            清空{kindLabel}错题
+            清空当前{kindLabel}错题
           </button>
         </>
       )}
