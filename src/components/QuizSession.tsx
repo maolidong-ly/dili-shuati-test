@@ -20,6 +20,7 @@ import {
   recordCloudSessionAnswer,
   startCloudPracticeSession,
 } from '../lib/practice-session'
+import { incrementLocalAttempt } from '../lib/question-attempts'
 import { getChapterProgress, progressTotals, recordAnswer } from '../lib/storage'
 import {
   inferWrongBookKind,
@@ -66,14 +67,19 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
 
   const activeQuestions: ActiveQuestion[] = useMemo(() => {
     if (launch.crossUnit && launch.questionIds?.length) {
-      return collectQuestionsByIds(launch.questionIds).map((ref) => ({
+      let ids = launch.questionIds
+      if (launch.startQuestionId) {
+        const i = ids.indexOf(launch.startQuestionId)
+        if (i >= 0) ids = ids.slice(i)
+      }
+      return collectQuestionsByIds(ids).map((ref) => ({
         question: ref.question,
         unitId: ref.unitId,
         unitLabel: ref.unitLabel,
       }))
     }
     if (!unit) return []
-    const filtered = sortQuestionsByKind(
+    let filtered = sortQuestionsByKind(
       filterQuestions(
         unit.questions,
         launch.starFilter,
@@ -81,6 +87,10 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         launch.kindFilter ?? 'all',
       ),
     )
+    if (launch.startQuestionId) {
+      const start = filtered.findIndex((q) => q.id === launch.startQuestionId)
+      if (start >= 0) filtered = filtered.slice(start)
+    }
     const label = getQuizUnitLabel(unit)
     return filtered.map((question) => ({
       question,
@@ -103,8 +113,17 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const [selectedSingle, setSelectedSingle] = useState<number | null>(null)
   const [selectedMulti, setSelectedMulti] = useState<number[]>([])
   const [revealed, setRevealed] = useState(false)
+  const [explainOpen, setExplainOpen] = useState(false)
   const [sessionAnswered, setSessionAnswered] = useState(0)
   const [sessionCorrect, setSessionCorrect] = useState(0)
+
+  useEffect(() => {
+    setIndex(0)
+    setSelectedSingle(null)
+    setSelectedMulti([])
+    setRevealed(false)
+    setExplainOpen(false)
+  }, [launch.unitId, launch.startQuestionId, launch.kindFilter, launch.starFilter])
 
   const chapterIdForCloud =
     unit?.mode === 'chapter' ? unit.chapter.id : ''
@@ -220,6 +239,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       removeFromWrongBook(question.id)
     }
 
+    incrementLocalAttempt(question.id)
     setSessionAnswered((n) => n + 1)
     if (correct) setSessionCorrect((n) => n + 1)
 
@@ -233,6 +253,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       )
     }
 
+    setExplainOpen(false)
     setRevealed(true)
     onProgress()
   }
@@ -264,6 +285,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
+      setExplainOpen(false)
     }
   }
 
@@ -273,6 +295,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
+      setExplainOpen(false)
     }
   }
 
@@ -359,7 +382,16 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         </ul>
 
         {revealed && question.explanation ? (
-          <p className="explain">{question.explanation}</p>
+          <div className="explain-block">
+            <button
+              type="button"
+              className="btn ghost small"
+              onClick={() => setExplainOpen((o) => !o)}
+            >
+              {explainOpen ? '收起解析' : '查看解析'}
+            </button>
+            {explainOpen ? <p className="explain">{question.explanation}</p> : null}
+          </div>
         ) : null}
 
         <div className="quiz-actions">

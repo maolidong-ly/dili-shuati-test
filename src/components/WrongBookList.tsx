@@ -1,18 +1,41 @@
 import { useMemo, useState } from 'react'
+import { findQuestionGlobal } from '../data/curriculum'
+import { loadMergedQuestionsForUnit } from '../lib/load-unit-questions'
+import { applyQuestionMeta } from '../lib/question-meta'
 import {
   clearWrongBook,
   countWrongQuestions,
   listWrongQuestions,
 } from '../lib/wrong-book'
-import type { QuizLaunchConfig, WrongBookKind } from '../types'
+import { QuestionReadonlyCard } from './QuestionReadonlyCard'
+import type { ChoiceQuestion, QuizLaunchConfig, WrongBookKind } from '../types'
 
 type Props = {
   onStart: (config: QuizLaunchConfig) => void
 }
 
+async function resolveQuestion(
+  questionId: string,
+  unitId: string,
+): Promise<ChoiceQuestion | null> {
+  const hit = findQuestionGlobal(questionId)
+  if (hit) return hit.question
+  try {
+    const list = applyQuestionMeta(await loadMergedQuestionsForUnit(unitId))
+    return list.find((q) => q.id === questionId) ?? null
+  } catch {
+    return null
+  }
+}
+
 export function WrongBookList({ onStart }: Props) {
   const [kind, setKind] = useState<WrongBookKind>('chapter')
   const [tick, setTick] = useState(0)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [loadedQuestions, setLoadedQuestions] = useState<
+    Record<string, ChoiceQuestion>
+  >({})
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const chapterCount = useMemo(() => {
     void tick
@@ -37,6 +60,21 @@ export function WrongBookList({ onStart }: Props) {
     byUnit.set(e.unitId, list)
   }
 
+  async function toggleExpand(questionId: string, unitId: string) {
+    if (expandedId === questionId) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(questionId)
+    if (loadedQuestions[questionId]) return
+    setLoadingId(questionId)
+    const q = await resolveQuestion(questionId, unitId)
+    if (q) {
+      setLoadedQuestions((prev) => ({ ...prev, [questionId]: q }))
+    }
+    setLoadingId(null)
+  }
+
   return (
     <section className="wrong-book">
       <div className="wrong-head">
@@ -49,7 +87,10 @@ export function WrongBookList({ onStart }: Props) {
           role="tab"
           aria-selected={kind === 'chapter'}
           className={kind === 'chapter' ? 'mode-btn active' : 'mode-btn'}
-          onClick={() => setKind('chapter')}
+          onClick={() => {
+            setKind('chapter')
+            setExpandedId(null)
+          }}
         >
           章节错题{chapterCount > 0 ? ` (${chapterCount})` : ''}
         </button>
@@ -58,7 +99,10 @@ export function WrongBookList({ onStart }: Props) {
           role="tab"
           aria-selected={kind === 'topic'}
           className={kind === 'topic' ? 'mode-btn active' : 'mode-btn'}
-          onClick={() => setKind('topic')}
+          onClick={() => {
+            setKind('topic')
+            setExpandedId(null)
+          }}
         >
           考点错题{topicCount > 0 ? ` (${topicCount})` : ''}
         </button>
@@ -75,7 +119,7 @@ export function WrongBookList({ onStart }: Props) {
       ) : (
         <>
           <p className="muted setup-hint">
-            {kindLabel}错题 · 共 {entries.length} 题 · 答对后自动移出
+            {kindLabel}错题 · 共 {entries.length} 题 · 点题目展开 · 答对后自动移出
           </p>
 
           <button
@@ -114,12 +158,39 @@ export function WrongBookList({ onStart }: Props) {
                   </button>
                 </div>
                 <ul className="wrong-items">
-                  {items.map((item) => (
-                    <li key={item.questionId}>
-                      <span className="wrong-stem">{item.stemPreview}</span>
-                      <span className="muted small">错 {item.wrongCount} 次</span>
-                    </li>
-                  ))}
+                  {items.map((item) => {
+                    const open = expandedId === item.questionId
+                    const q = loadedQuestions[item.questionId]
+                    return (
+                      <li key={item.questionId} className="wrong-item-wrap">
+                        <button
+                          type="button"
+                          className="wrong-item-toggle"
+                          aria-expanded={open}
+                          onClick={() =>
+                            void toggleExpand(item.questionId, item.unitId)
+                          }
+                        >
+                          <span className="wrong-stem">{item.stemPreview}</span>
+                          <span className="muted small">
+                            错 {item.wrongCount} 次 · {open ? '收起' : '展开'}
+                          </span>
+                        </button>
+                        {open ? (
+                          loadingId === item.questionId && !q ? (
+                            <p className="muted small wrong-item-loading">加载题目…</p>
+                          ) : q ? (
+                            <QuestionReadonlyCard
+                              question={q}
+                              className="wrong-item-detail"
+                            />
+                          ) : (
+                            <p className="muted small">题目暂无法加载</p>
+                          )
+                        ) : null}
+                      </li>
+                    )
+                  })}
                 </ul>
               </li>
             ))}
@@ -131,6 +202,7 @@ export function WrongBookList({ onStart }: Props) {
             onClick={() => {
               if (confirm(`确定清空全部${kindLabel}错题？`)) {
                 clearWrongBook(kind)
+                setExpandedId(null)
                 setTick((t) => t + 1)
               }
             }}

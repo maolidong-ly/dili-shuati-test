@@ -1501,3 +1501,192 @@ html[data-theme='midnight'] .form-card textarea {
   color: #b91c1c;
   font-weight: 700;
 }
+
+.explain-block {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.feature-panel {
+  width: min(18rem, 92vw);
+}
+
+.feature-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.35rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--app-text);
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.feature-row:hover {
+  background: var(--app-input-bg);
+}
+
+.feature-row--sound {
+  margin-top: 0.35rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgb(var(--app-card-shadow) / 0.35);
+}
+
+.feature-appearance {
+  padding: 0 0.25rem 0.5rem;
+}
+
+.toggle-pill {
+  border: 1.5px solid rgb(var(--app-card-shadow));
+  background: var(--app-input-bg);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--app-muted);
+}
+
+.toggle-pill.on {
+  border-color: var(--app-primary);
+  background: var(--app-nav-active-bg);
+  color: var(--app-nav-active-text);
+}
+
+.question-readonly {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: none;
+}
+
+.question-readonly .option.readonly {
+  cursor: default;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.opt-tag {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #047857;
+}
+
+.admin-q-preview {
+  width: 100%;
+}
+
+.admin-q-row {
+  align-items: stretch;
+}
+
+.admin-q-row > .admin-row-actions {
+  flex-wrap: wrap;
+}
+
+.q-picker-toggle {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: var(--app-input-bg);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  font-weight: 800;
+  color: var(--app-heading);
+  cursor: pointer;
+}
+
+.q-picker-kind {
+  margin-top: 0.65rem;
+}
+
+.q-picker-kind-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--app-muted);
+}
+
+.q-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+  gap: 0.4rem;
+}
+
+.q-picker-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1.5px solid rgb(var(--app-card-shadow));
+  border-radius: 10px;
+  background: var(--app-card-bg);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--app-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.q-picker-cell:hover {
+  border-color: var(--app-primary);
+  background: var(--app-nav-active-bg);
+}
+
+.q-picker-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.1rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+.wrong-item-wrap {
+  border-bottom: 1px solid rgb(var(--app-card-shadow) / 0.25);
+}
+
+.wrong-item-wrap:last-child {
+  border-bottom: none;
+}
+
+.wrong-item-toggle {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.65rem 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.wrong-item-detail {
+  margin-bottom: 0.65rem;
+}
+
+.wrong-item-loading {
+  padding: 0 0 0.65rem;
+}

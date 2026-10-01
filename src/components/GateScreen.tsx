@@ -14,6 +14,7 @@ import {
   resetLocalQuizState,
   saveProfile,
 } from '../lib/storage'
+import { clearLocalAttempts } from '../lib/question-attempts'
 import { clearWrongBook } from '../lib/wrong-book'
 import type { LocalProfile } from '../types'
 
@@ -39,6 +40,7 @@ export function GateScreen({ onReady }: Props) {
     if (userChanged) {
       resetLocalQuizState()
       clearWrongBook()
+      clearLocalAttempts()
     }
 
     saveProfile(profile)

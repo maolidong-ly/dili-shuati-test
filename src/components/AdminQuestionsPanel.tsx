@@ -19,6 +19,7 @@ import {
   sortOrderForKind,
 } from '../lib/question-display'
 import { getSupabase } from '../lib/supabase'
+import { QuestionReadonlyCard } from './QuestionReadonlyCard'
 import type { ChoiceQuestion, QuestionKind, StarLevel } from '../types'
 import { starLabel } from '../lib/question-filter'
 
@@ -30,11 +31,17 @@ type Props = {
 function QuestionListBlock({
   kind,
   questions,
+  allInUnit,
+  viewingId,
+  onView,
   onEdit,
   onDelete,
 }: {
   kind: QuestionKind
   questions: ChoiceQuestion[]
+  allInUnit: ChoiceQuestion[]
+  viewingId: string | null
+  onView: (q: ChoiceQuestion) => void
   onEdit: (q: ChoiceQuestion) => void
   onDelete: (id: string) => void
 }) {
@@ -46,7 +53,7 @@ function QuestionListBlock({
       </h4>
       <ul className="admin-list">
         {questions.map((q, qi) => (
-          <li key={q.id} className="admin-row card">
+          <li key={q.id} className="admin-row card admin-q-row">
             <div>
               <strong>
                 {qi + 1}. {q.stem.slice(0, 56)}
@@ -58,6 +65,13 @@ function QuestionListBlock({
               <p className="muted small admin-q-id">{q.id}</p>
             </div>
             <div className="admin-row-actions">
+              <button
+                type="button"
+                className="btn ghost small"
+                onClick={() => onView(q)}
+              >
+                {viewingId === q.id ? '收起' : '查看'}
+              </button>
               <button
                 type="button"
                 className="btn ghost small"
@@ -73,6 +87,13 @@ function QuestionListBlock({
                 删除
               </button>
             </div>
+            {viewingId === q.id ? (
+              <QuestionReadonlyCard
+                question={q}
+                allInUnit={allInUnit}
+                className="admin-q-preview"
+              />
+            ) : null}
           </li>
         ))}
       </ul>
@@ -103,6 +124,7 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
   const [multiAns, setMultiAns] = useState<number[]>([])
   const [explanation, setExplanation] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [stars, setStars] = useState<StarLevel>(3)
 
   const grouped = useMemo(() => groupQuestionsByKind(items), [items])
@@ -147,7 +169,12 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
     setStars(3)
   }
 
+  function loadForView(q: ChoiceQuestion) {
+    setViewingId((cur) => (cur === q.id ? null : q.id))
+  }
+
   function loadForEdit(q: ChoiceQuestion) {
+    setViewingId(null)
     const k = questionKind(q)
     setEditingId(q.id)
     setId(q.id)
@@ -433,18 +460,27 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
                 <QuestionListBlock
                   kind="single"
                   questions={grouped.single}
+                  allInUnit={items}
+                  viewingId={viewingId}
+                  onView={loadForView}
                   onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />
                 <QuestionListBlock
                   kind="multiple"
                   questions={grouped.multiple}
+                  allInUnit={items}
+                  viewingId={viewingId}
+                  onView={loadForView}
                   onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />
                 <QuestionListBlock
                   kind="judgment"
                   questions={grouped.judgment}
+                  allInUnit={items}
+                  viewingId={viewingId}
+                  onView={loadForView}
                   onEdit={loadForEdit}
                   onDelete={handleDelete}
                 />

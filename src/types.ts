@@ -75,6 +75,8 @@ export type QuizLaunchConfig = {
   questionIds?: string[]
   /** 错题跨章节/考点混合练习 */
   crossUnit?: boolean
+  /** 从指定题目开始（题号选做） */
+  startQuestionId?: string
 }
 
 export type LocalProfile = {

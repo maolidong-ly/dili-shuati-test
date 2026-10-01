@@ -1,7 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { QuestionPickerGrid } from './QuestionPickerGrid'
 import { useQuizUnit } from '../hooks/useQuizUnit'
 import { groupQuestionsByKind, KIND_LABELS } from '../lib/question-display'
 import { countByStar, filterQuestions, starLabel } from '../lib/question-filter'
+import {
+  fetchUnitAttemptCounts,
+  getAttemptCountForQuestions,
+} from '../lib/question-attempts'
+import { getProfile } from '../lib/storage'
 import { listWrongByUnit } from '../lib/wrong-book'
 import type {
   QuestionKind,
@@ -25,8 +31,15 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
   const [selectedStars, setSelectedStars] = useState<StarLevel[]>([])
   const [kindFilter, setKindFilter] = useState<QuestionKindFilter>('all')
   const [wrongOnly, setWrongOnly] = useState(false)
+  const [cloudAttempts, setCloudAttempts] = useState<Record<string, number>>({})
 
   const isTopicUnit = unit?.mode === 'topic'
+
+  useEffect(() => {
+    const profile = getProfile()
+    if (!profile || !unitId) return
+    void fetchUnitAttemptCounts(profile, unitId).then(setCloudAttempts)
+  }, [unitId])
 
   const allQuestions = unit?.questions ?? []
   const wrongInUnit = useMemo(
@@ -51,6 +64,15 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
     const ids = wrongOnly ? wrongInUnit : undefined
     return filterQuestions(allQuestions, starFilter, ids, kindFilter)
   }, [allQuestions, starFilter, wrongOnly, wrongInUnit, kindFilter])
+
+  const attemptCounts = useMemo(
+    () =>
+      getAttemptCountForQuestions(
+        preview.map((q) => q.id),
+        cloudAttempts,
+      ),
+    [preview, cloudAttempts],
+  )
 
   const starCounts = useMemo(() => countByStar(allQuestions), [allQuestions])
 
@@ -79,13 +101,14 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
     )
   }
 
-  function handleStart() {
+  function handleStart(startQuestionId?: string) {
     onStart({
       unitId,
       starFilter,
       kindFilter,
       wrongOnly: wrongOnly && wrongInUnit.length > 0,
       questionIds: wrongOnly ? wrongInUnit : undefined,
+      startQuestionId,
     })
   }
 
@@ -186,6 +209,12 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
           </label>
         </div>
 
+        <QuestionPickerGrid
+          questions={preview}
+          attemptCounts={attemptCounts}
+          onPick={(questionId) => handleStart(questionId)}
+        />
+
         <p className="setup-summary">
           本次共 <strong>{preview.length}</strong> 题
           {kindFilter !== 'all' ? ` · ${KIND_LABELS[kindFilter as QuestionKind]}` : ''}
@@ -195,10 +224,10 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
         <button
           type="button"
           className="btn primary full setup-start"
-          onClick={handleStart}
+          onClick={() => handleStart()}
           disabled={allQuestions.length > 0 && preview.length === 0}
         >
-          开始刷题
+          从第一题开始
         </button>
       </article>
     </div>
