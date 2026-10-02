@@ -20,6 +20,7 @@ import {
 } from '../lib/question-display'
 import { getSupabase } from '../lib/supabase'
 import { QuestionReadonlyCard } from './QuestionReadonlyCard'
+import { UnitExportButtons } from './UnitExportButtons'
 import type { ChoiceQuestion, QuestionKind, StarLevel } from '../types'
 import { starLabel } from '../lib/question-filter'
 
@@ -318,6 +319,14 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
         <button type="button" className="btn ghost small" disabled={loading} onClick={() => void reload()}>
           刷新题目
         </button>
+        {unitId && items.length > 0 ? (
+          <UnitExportButtons
+            unitId={unitId}
+            unitTitle={units.find((u) => u.id === unitId)?.label ?? unitId}
+            questions={items}
+            includeAnswers
+          />
+        ) : null}
       </div>
 
       <form className="card form-card admin-q-form" onSubmit={handleSave}>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { APP_FONTS, applyFont, getStoredFont, setStoredFont, type AppFontId } from '../lib/font'
-import { bindGlobalUiClickSound, isSoundEnabled, setSoundEnabled } from '../lib/sound'
+import { isSoundEnabled, setSoundEnabled } from '../lib/sound'
 import {
   APP_THEMES,
   applyTheme,
@@ -24,10 +24,6 @@ export function ThemeSwitcher() {
   useEffect(() => {
     applyFont(fontId)
   }, [fontId])
-
-  useEffect(() => {
-    return bindGlobalUiClickSound()
-  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -116,7 +112,7 @@ export function ThemeSwitcher() {
           ) : null}
 
           <div className="feature-row feature-row--sound">
-            <span>🔊 点击音效</span>
+            <span>🔊 答错提示音</span>
             <button
               type="button"
               className={soundOn ? 'toggle-pill on' : 'toggle-pill'}

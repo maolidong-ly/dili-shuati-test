@@ -77,6 +77,12 @@ export type QuizLaunchConfig = {
   crossUnit?: boolean
   /** 从指定题目开始（题号选做） */
   startQuestionId?: string
+  /** 跨单元错题：题目 id 与所属单元（用于云端拉题） */
+  crossUnitSources?: Array<{
+    questionId: string
+    unitId: string
+    unitLabel: string
+  }>
 }
 
 export type LocalProfile = {

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { topicCategories } from '../data/curriculum/topics'
 import { getChapterProgress, progressTotals } from '../lib/storage'
+import { labelForUnitId } from '../lib/unit-label'
+import { UnitExportButtons } from './UnitExportButtons'
 
 type Props = {
   onSelectUnit: (unitId: string) => void
@@ -53,7 +55,7 @@ export function TopicList({ onSelectUnit }: Props) {
                     const total = t.questions.length
                     const prog = progressTotals(getChapterProgress(t.id))
                     return (
-                      <li key={t.id}>
+                      <li key={t.id} className="section-row-wrap">
                         <button
                           type="button"
                           className="topic-point-row"
@@ -66,6 +68,15 @@ export function TopicList({ onSelectUnit }: Props) {
                               : '待录入'}
                           </span>
                         </button>
+                        {total > 0 ? (
+                          <UnitExportButtons
+                            unitId={t.id}
+                            unitTitle={labelForUnitId(t.id)}
+                            questions={t.questions}
+                            includeAnswers={false}
+                            compact
+                          />
+                        ) : null}
                       </li>
                     )
                   })}

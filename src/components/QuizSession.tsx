@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  collectQuestionsByIds,
   getBookForChapter,
   getQuizUnitLabel,
 } from '../data/curriculum'
+import { loadCrossUnitQuestions } from '../lib/load-cross-unit-questions'
 import { useQuizUnit } from '../hooks/useQuizUnit'
 import { filterQuestions, starLabel } from '../lib/question-filter'
 import { correctIndicesForDisplay, isAnswerCorrect } from '../lib/question-grade'
@@ -54,6 +54,44 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
     answered: number
     correct: number
   } | null>(null)
+  const [crossQuestions, setCrossQuestions] = useState<ActiveQuestion[]>([])
+  const [crossLoading, setCrossLoading] = useState(false)
+
+  useEffect(() => {
+    if (!launch.crossUnit || !launch.questionIds?.length) {
+      setCrossQuestions([])
+      setCrossLoading(false)
+      return
+    }
+    let cancelled = false
+    setCrossLoading(true)
+    const sources =
+      launch.crossUnitSources ??
+      launch.questionIds.map((questionId) => ({
+        questionId,
+        unitId: '',
+        unitLabel: '错题',
+      }))
+    void loadCrossUnitQuestions(sources).then((loaded) => {
+      if (cancelled) return
+      let list = loaded
+      if (launch.startQuestionId) {
+        const i = list.findIndex((x) => x.question.id === launch.startQuestionId)
+        if (i >= 0) list = list.slice(i)
+      }
+      setCrossQuestions(
+        list.map(({ question, unitId, unitLabel }) => ({
+          question,
+          unitId,
+          unitLabel,
+        })),
+      )
+      setCrossLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [launch.crossUnit, launch.questionIds, launch.crossUnitSources, launch.startQuestionId])
 
   useEffect(() => {
     if (launch.crossUnit || !unit) return
@@ -68,16 +106,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
 
   const activeQuestions: ActiveQuestion[] = useMemo(() => {
     if (launch.crossUnit && launch.questionIds?.length) {
-      let ids = launch.questionIds
-      if (launch.startQuestionId) {
-        const i = ids.indexOf(launch.startQuestionId)
-        if (i >= 0) ids = ids.slice(i)
-      }
-      return collectQuestionsByIds(ids).map((ref) => ({
-        question: ref.question,
-        unitId: ref.unitId,
-        unitLabel: ref.unitLabel,
-      }))
+      return crossQuestions
     }
     if (!unit) return []
     let filtered = sortQuestionsByKind(
@@ -98,7 +127,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       unitId: unit.id,
       unitLabel: label,
     }))
-  }, [unit, launch])
+  }, [unit, launch, crossQuestions])
 
   const storageKey = launch.crossUnit ? 'cross-unit' : (unit?.id ?? launch.unitId)
   const allowRetry = Boolean(
@@ -114,6 +143,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const [selectedSingle, setSelectedSingle] = useState<number | null>(null)
   const [selectedMulti, setSelectedMulti] = useState<number[]>([])
   const [revealed, setRevealed] = useState(false)
+  const [flashOptions, setFlashOptions] = useState<Set<number>>(() => new Set())
   const [sessionAnswered, setSessionAnswered] = useState(0)
   const [sessionCorrect, setSessionCorrect] = useState(0)
 
@@ -127,7 +157,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
   const chapterIdForCloud =
     unit?.mode === 'chapter' ? unit.chapter.id : ''
 
-  if (!launch.crossUnit && loading) {
+  if ((launch.crossUnit && crossLoading) || (!launch.crossUnit && loading)) {
     return (
       <div className="screen">
         <p className="muted">正在加载题目…</p>
@@ -189,9 +219,11 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
             <h2>错题练习</h2>
           )}
           <p className="muted">
-            {unit && unit.questions.length === 0
-              ? '本题库还在录入中，请老师在后台录题。'
-              : '当前筛选条件下没有题目，请返回调整题型或错题筛选。'}
+            {launch.crossUnit
+              ? '错题未能加载，请检查网络后返回重试。'
+              : unit && unit.questions.length === 0
+                ? '本题库还在录入中，请老师在后台录题。'
+                : '当前筛选条件下没有题目，请返回调整题型或错题筛选。'}
           </p>
         </article>
       </div>
@@ -284,6 +316,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
+      setFlashOptions(new Set())
     }
   }
 
@@ -293,6 +326,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
       setSelectedSingle(null)
       setSelectedMulti([])
       setRevealed(false)
+      setFlashOptions(new Set())
     }
   }
 
@@ -307,8 +341,20 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
     return 'option'
   }
 
+  function flashOption(i: number) {
+    setFlashOptions((prev) => new Set(prev).add(i))
+    window.setTimeout(() => {
+      setFlashOptions((prev) => {
+        const next = new Set(prev)
+        next.delete(i)
+        return next
+      })
+    }, 480)
+  }
+
   function onPickOption(i: number) {
     if (revealed) return
+    flashOption(i)
     if (isMulti) {
       setSelectedMulti((prev) =>
         prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort(),
@@ -361,7 +407,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
             <li key={`${question.id}-${i}`}>
               <button
                 type="button"
-                className={`${optionClass(i)}${isJudgment ? ' judgment-option' : ''}`}
+                className={`${optionClass(i)}${flashOptions.has(i) ? ' option-flash' : ''}${isJudgment ? ' judgment-option' : ''}`}
                 disabled={revealed}
                 onClick={() => onPickOption(i)}
               >

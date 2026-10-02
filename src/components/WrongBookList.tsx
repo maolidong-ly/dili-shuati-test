@@ -151,6 +151,11 @@ export function WrongBookList({ onStart }: Props) {
                   starFilter: 'all',
                   questionIds: entries.map((e) => e.questionId),
                   crossUnit: true,
+                  crossUnitSources: entries.map((e) => ({
+                    questionId: e.questionId,
+                    unitId: e.unitId,
+                    unitLabel: e.unitLabel,
+                  })),
                 })
               }
             >

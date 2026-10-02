@@ -6,7 +6,9 @@ import {
 } from '../lib/catalog-question-cache'
 import { getAggregatedChapterProgress } from '../lib/progress-aggregate'
 import { getChapterProgress } from '../lib/storage'
+import { labelForUnitId } from '../lib/unit-label'
 import type { ChoiceQuestion } from '../types'
+import { UnitExportButtons } from './UnitExportButtons'
 
 type Props = {
   onSelectUnit: (unitId: string) => void
@@ -27,14 +29,12 @@ export function ChapterList({ onSelectUnit, refreshKey }: Props) {
   const [unitQuestions, setUnitQuestions] = useState<Map<string, ChoiceQuestion[]>>(
     () => new Map(),
   )
-  const [countsLoading, setCountsLoading] = useState(false)
   const book = textbooks.find((b) => b.id === bookId) ?? textbooks[0]
 
   useEffect(() => {
     if (!book) return
     let cancelled = false
     invalidateCatalogQuestionCache()
-    setCountsLoading(true)
     async function load() {
       const map = new Map<string, ChoiceQuestion[]>()
       const unitIds = book.chapters.flatMap((ch) => {
@@ -49,7 +49,6 @@ export function ChapterList({ onSelectUnit, refreshKey }: Props) {
       )
       if (!cancelled) {
         setUnitQuestions(map)
-        setCountsLoading(false)
       }
     }
     void load()
@@ -107,10 +106,6 @@ export function ChapterList({ onSelectUnit, refreshKey }: Props) {
         />
         <div>
           <h2>教材目录</h2>
-          <p className="muted">
-            点章节展开 · 点节次刷题
-            {countsLoading ? ' · 同步题量…' : null}
-          </p>
         </div>
       </div>
 
@@ -186,8 +181,9 @@ export function ChapterList({ onSelectUnit, refreshKey }: Props) {
                       answered: answeredSec,
                       correct: raw.correctIds.filter((id) => secIds.has(id)).length,
                     }
+                    const secQuestions = unitQuestions.get(s.id) ?? s.questions
                     return (
-                      <li key={s.id}>
+                      <li key={s.id} className="section-row-wrap">
                         <button
                           type="button"
                           className="section-row"
@@ -201,6 +197,15 @@ export function ChapterList({ onSelectUnit, refreshKey }: Props) {
                               : '待录入'}
                           </span>
                         </button>
+                        {secTotal > 0 ? (
+                          <UnitExportButtons
+                            unitId={s.id}
+                            unitTitle={labelForUnitId(s.id)}
+                            questions={secQuestions}
+                            includeAnswers={false}
+                            compact
+                          />
+                        ) : null}
                       </li>
                     )
                   })}

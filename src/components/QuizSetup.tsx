@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { QuestionPickerGrid } from './QuestionPickerGrid'
+import { UnitExportButtons } from './UnitExportButtons'
+import { getQuizUnitLabel } from '../data/curriculum'
 import { useQuizUnit } from '../hooks/useQuizUnit'
 import { groupQuestionsByKind, KIND_LABELS } from '../lib/question-display'
 import { countByStar, filterQuestions, starLabel } from '../lib/question-filter'
@@ -132,6 +134,14 @@ export function QuizSetup({ unitId, onStart, onBack }: Props) {
           <span className="quiz-meta-title">{title}</span>
           <span className="muted">练习设置</span>
         </div>
+        {allQuestions.length > 0 ? (
+          <UnitExportButtons
+            unitId={unitId}
+            unitTitle={getQuizUnitLabel(unit)}
+            questions={allQuestions}
+            includeAnswers={false}
+          />
+        ) : null}
       </header>
 
       <article className="card setup-card">

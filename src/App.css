@@ -744,6 +744,62 @@ html[data-theme='midnight'] .form-card textarea {
   margin: 0;
 }
 
+.section-row-wrap {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid #f1f5f9;
+}
+
+.section-row-wrap .section-row,
+.section-row-wrap .topic-point-row {
+  flex: 1;
+  min-width: 0;
+  border-top: none;
+}
+
+.section-row-wrap .unit-export {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0.25rem 0.45rem 0.25rem 0;
+  border-left: 1px solid #e2e8f0;
+  background: rgb(255 255 255 / 60%);
+}
+
+.unit-export {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.unit-export--compact {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.unit-export-btn {
+  min-width: 2.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.admin-toolbar {
+  flex-wrap: wrap;
+}
+
+.admin-toolbar .unit-export {
+  margin-left: auto;
+}
+
+.quiz-header {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.quiz-header .unit-export {
+  margin-left: auto;
+}
+
 .section-row {
   width: 100%;
   display: flex;
@@ -833,6 +889,25 @@ html[data-theme='midnight'] .form-card textarea {
 .option.selected {
   border-color: #2563eb;
   background: #eff6ff;
+}
+
+.option.option-flash {
+  animation: option-pick-flash 0.48s ease-out;
+}
+
+@keyframes option-pick-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgb(37 99 235 / 55%);
+    transform: scale(1);
+  }
+  40% {
+    box-shadow: 0 0 14px 3px rgb(37 99 235 / 35%);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
 }
 
 .option.correct {
