@@ -54,6 +54,29 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 80)
 }
 
+/** Storage 对象键仅支持 ASCII；原文件名（含中文）只用于显示标题。 */
+function storageObjectKey(id: string, originalName: string): string {
+  const m = /\.([a-zA-Z0-9]{1,8})$/.exec(originalName.trim())
+  const ext = m ? `.${m[1].toLowerCase()}` : ''
+  return `${id}${ext}`
+}
+
+function mapMaterialsError(err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/invalidkey|invalid key/i.test(msg)) {
+    return new Error('文件名含特殊字符，请重试或改用英文文件名')
+  }
+  if (/fetch|network|failed to fetch|load failed/i.test(msg)) {
+    return new Error(
+      '无法连接服务器。请换网络、关闭 VPN，或改用系统浏览器（不要只在微信里打开）',
+    )
+  }
+  if (msg.includes('forbidden')) {
+    return new Error('后台口令不正确，请返回重新登录')
+  }
+  return err instanceof Error ? err : new Error(msg || '操作失败')
+}
+
 export async function listMaterials(options?: {
   category?: MaterialCategory | null
   search?: string
@@ -64,17 +87,25 @@ export async function listMaterials(options?: {
     p_category: options?.category ?? null,
     p_search: options?.search?.trim() || null,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw mapMaterialsError(new Error(error.message))
   return (data ?? []) as TeacherMaterialRow[]
 }
 
 export async function adminListMaterials(adminPass: string): Promise<TeacherMaterialRow[]> {
   const supabase = getSupabase()
   if (!supabase) return []
-  const { data, error } = await supabase.rpc('admin_list_materials', {
-    p_admin_passphrase: adminPass,
-  })
-  if (error) throw new Error(error.message)
+  let data: unknown
+  let error: { message: string } | null = null
+  try {
+    const res = await supabase.rpc('admin_list_materials', {
+      p_admin_passphrase: adminPass,
+    })
+    data = res.data
+    error = res.error
+  } catch (e) {
+    throw mapMaterialsError(e)
+  }
+  if (error) throw mapMaterialsError(new Error(error.message))
   return (data ?? []) as TeacherMaterialRow[]
 }
 
@@ -88,21 +119,26 @@ export async function adminUploadMaterial(
   if (!supabase) throw new Error('cloud_not_configured')
 
   const id = crypto.randomUUID()
-  const safeName = sanitizeFilename(file.name)
-  const storagePath = `${category}/${id}/${safeName}`
+  const displayName = title.trim() || sanitizeFilename(file.name) || '未命名资料'
+  const objectKey = storageObjectKey(id, file.name)
+  const storagePath = `${category}/${id}/${objectKey}`
 
-  const { error: upErr } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, {
+  let upErr: { message: string } | null = null
+  try {
+    const res = await supabase.storage.from(BUCKET).upload(storagePath, file, {
       cacheControl: '3600',
       upsert: false,
       contentType: file.type || undefined,
     })
-  if (upErr) throw new Error(upErr.message)
+    upErr = res.error
+  } catch (e) {
+    throw mapMaterialsError(e)
+  }
+  if (upErr) throw mapMaterialsError(new Error(upErr.message))
 
   const { error: regErr } = await supabase.rpc('admin_register_material', {
     p_admin_passphrase: adminPass,
-    p_title: title.trim() || safeName,
+    p_title: displayName,
     p_category: category,
     p_storage_path: storagePath,
     p_byte_size: file.size,
@@ -111,7 +147,7 @@ export async function adminUploadMaterial(
 
   if (regErr) {
     await supabase.storage.from(BUCKET).remove([storagePath])
-    throw new Error(regErr.message)
+    throw mapMaterialsError(new Error(regErr.message))
   }
 }
 
