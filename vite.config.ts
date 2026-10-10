@@ -51,16 +51,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         globIgnores: ['**/app-icon-source.png'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              networkTimeoutSeconds: 8,
-            },
-          },
-        ],
+        // 勿缓存 Supabase API，避免 PWA 在弱网下误用旧响应导致「无法连接」
+        runtimeCaching: [],
       },
     }),
   ],

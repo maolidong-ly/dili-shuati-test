@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { cloudFetch } from './cloud-fetch'
 import type { LeaderboardRow, LocalProfile, RegisterResult } from '../types'
 import { getDeviceId } from './device-id'
 import { getOrCreateDevProfile, isDevProfileRestored } from './dev-profiles'
@@ -18,7 +19,9 @@ let client: SupabaseClient | null = null
 export function getSupabase(): SupabaseClient | null {
   if (!isCloudEnabled()) return null
   if (!client) {
-    client = createClient(url!, anonKey!)
+    client = createClient(url!, anonKey!, {
+      global: { fetch: cloudFetch },
+    })
   }
   return client
 }

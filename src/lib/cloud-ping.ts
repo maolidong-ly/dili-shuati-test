@@ -11,36 +11,17 @@ export async function checkCloudReachability(): Promise<CloudReachability> {
   if (!isCloudEnabled()) return 'not_configured'
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline'
 
-  const url = import.meta.env.VITE_SUPABASE_URL as string
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
+  const supabase = getSupabase()
+  if (!supabase) return 'unreachable'
   try {
-    const ctrl = new AbortController()
-    const timer = window.setTimeout(() => ctrl.abort(), 12000)
-    const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
-      method: 'HEAD',
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-      signal: ctrl.signal,
+    await supabase.rpc('apply_for_nickname', {
+      p_passphrase: '__connectivity_probe__',
+      p_nickname: '__probe__',
     })
-    window.clearTimeout(timer)
-    if (res.ok || res.status === 404 || res.status === 401) return 'ok'
-    return 'unreachable'
+    // 能收到 RPC 响应（含 invalid_passphrase）即表示网络可达
+    return 'ok'
   } catch {
-    const supabase = getSupabase()
-    if (!supabase) return 'unreachable'
-    try {
-      const { error } = await supabase.rpc('apply_for_nickname', {
-        p_passphrase: '__connectivity_probe__',
-        p_nickname: '__probe__',
-      })
-      if (error) return 'ok'
-      return 'ok'
-    } catch {
-      return 'unreachable'
-    }
+    return 'unreachable'
   }
 }
 

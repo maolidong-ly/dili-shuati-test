@@ -19,7 +19,9 @@ const MESSAGES: Record<RegisterErrorCode, string> = {
 export function mapFetchFailure(err: unknown): RegisterErrorCode {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline'
   const msg = err instanceof Error ? err.message : String(err)
-  if (/abort|timeout|fetch|network|failed|load/i.test(msg)) return 'offline'
+  if (/failed to fetch|load failed|networkerror|network error|aborted|timeout/i.test(msg)) {
+    return 'offline'
+  }
   return 'unknown'
 }
 

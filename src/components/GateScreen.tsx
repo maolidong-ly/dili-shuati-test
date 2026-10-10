@@ -236,6 +236,19 @@ export function GateScreen({ onReady }: Props) {
         </label>
         {error ? <p className="error">{error}</p> : null}
         {info ? <p className="info">{info}</p> : null}
+        {cloud && cloudStatus === 'unreachable' ? (
+          <button
+            type="button"
+            className="btn ghost small"
+            disabled={loading}
+            onClick={() => {
+              setCloudStatus('checking')
+              void checkCloudReachability().then(setCloudStatus)
+            }}
+          >
+            重新检测连接
+          </button>
+        ) : null}
         <button type="submit" className="btn primary" disabled={loading}>
           {loading
             ? '处理中…'
