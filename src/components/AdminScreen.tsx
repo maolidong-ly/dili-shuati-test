@@ -7,6 +7,7 @@ import {
 } from '../lib/admin-api'
 import { isCloudEnabled } from '../lib/supabase'
 import type { AdminProfileRow } from '../types'
+import { AdminMaterialsPanel } from './AdminMaterialsPanel'
 import { AdminQuestionsPanel } from './AdminQuestionsPanel'
 import { AdminStudentReport } from './AdminStudentReport'
 
@@ -20,7 +21,9 @@ export function AdminScreen({ onClose }: Props) {
   const [adminPass, setAdminPass] = useState(() => sessionStorage.getItem(ADMIN_KEY) ?? '')
   const [loggedIn, setLoggedIn] = useState(false)
   const [rows, setRows] = useState<AdminProfileRow[]>([])
-  const [section, setSection] = useState<'accounts' | 'questions'>('accounts')
+  const [section, setSection] = useState<'accounts' | 'questions' | 'materials'>(
+    'accounts',
+  )
   const [questionCatalog, setQuestionCatalog] = useState<'chapter' | 'topic'>('chapter')
   const [viewStudent, setViewStudent] = useState<AdminProfileRow | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'disabled'>('all')
@@ -145,6 +148,13 @@ export function AdminScreen({ onClose }: Props) {
         >
           录题
         </button>
+        <button
+          type="button"
+          className={section === 'materials' ? 'gate-tab active' : 'gate-tab'}
+          onClick={() => setSection('materials')}
+        >
+          资料
+        </button>
       </div>
 
       {viewStudent ? (
@@ -154,6 +164,8 @@ export function AdminScreen({ onClose }: Props) {
           nickname={viewStudent.nickname}
           onBack={() => setViewStudent(null)}
         />
+      ) : section === 'materials' ? (
+        <AdminMaterialsPanel adminPass={adminPass} />
       ) : section === 'questions' ? (
         <>
           <div className="gate-tabs admin-sub-tabs">

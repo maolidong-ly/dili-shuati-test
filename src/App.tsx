@@ -4,6 +4,7 @@ import { AdminScreen } from './components/AdminScreen'
 import { GateScreen } from './components/GateScreen'
 import { InstallHint } from './components/InstallHint'
 import { Leaderboard } from './components/Leaderboard'
+import { MaterialsLibrary } from './components/MaterialsLibrary'
 import { WrongBookList } from './components/WrongBookList'
 import { countWrongQuestions } from './lib/wrong-book'
 import { QuizSession } from './components/QuizSession'
@@ -23,7 +24,7 @@ type View =
   | { kind: 'setup'; unitId: string }
   | { kind: 'quiz'; launch: QuizLaunchConfig }
 
-type Tab = 'practice' | 'wrong' | 'rank'
+type Tab = 'practice' | 'materials' | 'wrong' | 'rank'
 
 function App() {
   const [adminOpen, setAdminOpen] = useState(
@@ -146,7 +147,11 @@ function App() {
         </div>
         <div className="top-bar-actions">
           <ThemeSwitcher />
-          <button type="button" className="btn ghost small" onClick={handleLogout}>
+          <button
+            type="button"
+            className="btn ghost small top-bar-logout"
+            onClick={handleLogout}
+          >
             退出
           </button>
         </div>
@@ -180,6 +185,8 @@ function App() {
             onOpenSetup={(unitId) => setView({ kind: 'setup', unitId })}
             catalogRefreshKey={catalogRefreshKey}
           />
+        ) : tab === 'materials' ? (
+          <MaterialsLibrary />
         ) : tab === 'wrong' ? (
           <WrongBookList
             onStart={(launch) => setView({ kind: 'quiz', launch })}
@@ -190,7 +197,7 @@ function App() {
       </main>
 
       {view.kind === 'home' ? (
-        <nav className="bottom-nav three">
+        <nav className="bottom-nav four">
           <button
             type="button"
             className={tab === 'practice' ? 'nav active' : 'nav'}
@@ -200,10 +207,17 @@ function App() {
           </button>
           <button
             type="button"
+            className={tab === 'materials' ? 'nav active' : 'nav'}
+            onClick={() => setTab('materials')}
+          >
+            资料
+          </button>
+          <button
+            type="button"
             className={tab === 'wrong' ? 'nav active' : 'nav'}
             onClick={() => setTab('wrong')}
           >
-            错题本
+            错题
             {wrongCount > 0 ? <span className="nav-badge">{wrongCount}</span> : null}
           </button>
           <button

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { GateInstallButton } from './GateInstallButton'
 import { loadGateCreds, saveGateCreds } from '../lib/gate-creds'
@@ -8,8 +8,15 @@ import {
   isCloudEnabled,
 } from '../lib/supabase'
 import { pullAndMergeUserState, canSyncAcrossDevices } from '../lib/user-sync'
+import { isWeChatInAppBrowser } from '../lib/browser-storage'
+import {
+  checkCloudReachability,
+  cloudReachabilityHint,
+  type CloudReachability,
+} from '../lib/cloud-ping'
 import {
   getProfile,
+  isLoginStorageReady,
   markAccessGranted,
   resetLocalQuizState,
   saveProfile,
@@ -33,6 +40,24 @@ export function GateScreen({ onReady }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [cloudStatus, setCloudStatus] = useState<CloudReachability | 'checking'>(
+    cloud ? 'checking' : 'not_configured',
+  )
+
+  useEffect(() => {
+    if (!cloud) return
+    let cancelled = false
+    void checkCloudReachability().then((s) => {
+      if (!cancelled) setCloudStatus(s)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [cloud])
+
+  function normalizeNicknameInput(raw: string): string {
+    return raw.trim().replace(/\u3000/g, ' ').replace(/\s+/g, '')
+  }
 
   async function finishLogin(profile: LocalProfile, restored: boolean) {
     const prev = getProfile()
@@ -49,9 +74,13 @@ export function GateScreen({ onReady }: Props) {
 
     if (canSyncAcrossDevices()) {
       setInfo(restored ? '正在恢复云端进度…' : '正在同步…')
-      await pullAndMergeUserState(profile, 'replace')
-      await import('../lib/supabase').then((m) => m.syncProgress(profile))
-      setInfo(restored ? '已恢复刷题记录与错题本' : '已同步云端')
+      try {
+        await pullAndMergeUserState(profile, 'replace')
+        await import('../lib/supabase').then((m) => m.syncProgress(profile))
+        setInfo(restored ? '已恢复刷题记录与错题本' : '已同步云端')
+      } catch {
+        setInfo('已登录；进度同步稍后再试（不影响刷题）')
+      }
     } else if (restored && !userChanged) {
       setInfo('已识别本机昵称，恢复本地进度')
     }
@@ -65,8 +94,20 @@ export function GateScreen({ onReady }: Props) {
     setInfo('')
     setLoading(true)
     try {
+      if (!isLoginStorageReady()) {
+        setError(
+          '浏览器无法保存登录信息。请关闭无痕/隐私模式，或点右上角「⋯」用 Safari/Chrome 打开。',
+        )
+        return
+      }
+      const nick = normalizeNicknameInput(nickname)
+      if (nick.length < 2 || nick.length > 16) {
+        setError('昵称需 2～16 个字符（不含空格）')
+        return
+      }
+
       if (mode === 'apply') {
-        const result = await applyForNickname(passphrase, nickname)
+        const result = await applyForNickname(passphrase, nick)
         if (!result.ok) {
           if (result.code === 'pending_approval') {
             setInfo(result.message)
@@ -79,7 +120,7 @@ export function GateScreen({ onReady }: Props) {
         return
       }
 
-      const result = await enterWithDevice(passphrase, nickname)
+      const result = await enterWithDevice(passphrase, nick)
       if (!result.ok) {
         setError(result.message)
         return
@@ -87,7 +128,13 @@ export function GateScreen({ onReady }: Props) {
       await finishLogin(result.profile, result.restored)
     } catch (err) {
       console.error(err)
-      setError('操作失败，请刷新后重试')
+      if (err instanceof Error && err.message === 'storage_unavailable') {
+        setError(
+          '无法保存登录状态。请关闭隐私模式，或换用系统浏览器打开本页。',
+        )
+      } else {
+        setError('操作失败，请刷新后重试')
+      }
     } finally {
       setLoading(false)
     }
@@ -134,6 +181,24 @@ export function GateScreen({ onReady }: Props) {
           <GateInstallButton />
         </div>
       )}
+
+      {cloud && cloudStatus !== 'checking' ? (
+        <p
+          className={
+            cloudStatus === 'ok'
+              ? 'gate-cloud-status ok'
+              : 'gate-cloud-status warn'
+          }
+        >
+          {cloudReachabilityHint(cloudStatus)}
+        </p>
+      ) : null}
+      {isWeChatInAppBrowser() ? (
+        <p className="gate-wechat-hint">
+          检测到微信内打开：若无法登录，请点右上角 <strong>⋯</strong> →{' '}
+          <strong>在浏览器中打开</strong>。
+        </p>
+      ) : null}
 
       <form className="card form-card" onSubmit={handleSubmit}>
         <label>

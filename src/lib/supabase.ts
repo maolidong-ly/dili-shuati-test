@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { LeaderboardRow, LocalProfile, RegisterResult } from '../types'
 import { getDeviceId } from './device-id'
 import { getOrCreateDevProfile, isDevProfileRestored } from './dev-profiles'
-import { mapRpcError, messageForCode } from './rpc-errors'
+import { mapFetchFailure, mapRpcError, messageForCode } from './rpc-errors'
 import { getAllProgress } from './storage'
 import { pushUserState } from './user-sync'
 
@@ -69,10 +69,17 @@ export async function applyForNickname(
   const supabase = getSupabase()
   if (!supabase) return devLogin(trimmed, passphrase)
 
-  const { error } = await supabase.rpc('apply_for_nickname', {
-    p_passphrase: passphrase,
-    p_nickname: trimmed,
-  })
+  let error: { message: string } | null = null
+  try {
+    const res = await supabase.rpc('apply_for_nickname', {
+      p_passphrase: passphrase,
+      p_nickname: trimmed,
+    })
+    error = res.error
+  } catch (e) {
+    const code = mapFetchFailure(e)
+    return { ok: false, code, message: messageForCode(code) }
+  }
 
   if (error) {
     const code = mapRpcError(error.message)
@@ -98,11 +105,20 @@ export async function enterWithDevice(
   if (!supabase) return devLogin(trimmed, passphrase)
 
   const deviceId = getDeviceId()
-  const { data, error } = await supabase.rpc('enter_with_device', {
-    p_passphrase: passphrase,
-    p_nickname: trimmed,
-    p_device_id: deviceId,
-  })
+  let data: unknown = null
+  let error: { message: string } | null = null
+  try {
+    const res = await supabase.rpc('enter_with_device', {
+      p_passphrase: passphrase,
+      p_nickname: trimmed,
+      p_device_id: deviceId,
+    })
+    data = res.data
+    error = res.error
+  } catch (e) {
+    const code = mapFetchFailure(e)
+    return { ok: false, code, message: messageForCode(code) }
+  }
 
   if (error) {
     const code = mapRpcError(error.message)

@@ -5,7 +5,8 @@ const MESSAGES: Record<RegisterErrorCode, string> = {
   invalid_nickname: '昵称需 2～16 个字符，勿含空格首尾',
   nickname_taken: '该昵称已被使用，请换一个',
   quota_full: '注册人数已达上限（100 人），请联系老师',
-  offline: '当前离线，请联网后重试',
+  offline:
+    '无法连接服务器。请换手机流量、关闭 VPN，或点右上角「⋯」用系统浏览器打开（不要只在微信里打开）',
   cloud_not_configured: '未配置云数据库',
   pending_approval: '账号待老师审核，通过后再登录',
   already_pending: '该昵称已在审核中，请等待或换一个',
@@ -15,7 +16,15 @@ const MESSAGES: Record<RegisterErrorCode, string> = {
   unknown: '操作失败，请稍后重试',
 }
 
+export function mapFetchFailure(err: unknown): RegisterErrorCode {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline'
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/abort|timeout|fetch|network|failed|load/i.test(msg)) return 'offline'
+  return 'unknown'
+}
+
 export function mapRpcError(message: string): RegisterErrorCode {
+  if (/fetch|network|failed to fetch|load failed/i.test(message)) return 'offline'
   if (message.includes('invalid_passphrase')) return 'invalid_passphrase'
   if (message.includes('invalid_nickname')) return 'invalid_nickname'
   if (message.includes('nickname_taken')) return 'nickname_taken'

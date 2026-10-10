@@ -1,4 +1,5 @@
 import type { ChapterProgress, LocalProfile } from '../types'
+import { detectStorageTier, storageForTier } from './browser-storage'
 
 const KEYS = {
   profile: 'geoquiz.profile.v1',
@@ -8,9 +9,15 @@ const KEYS = {
 
 type ProgressStore = Record<string, ChapterProgress>
 
+function getStorage(): Storage | null {
+  return storageForTier(detectStorageTier())
+}
+
 function readProgress(): ProgressStore {
   try {
-    const raw = localStorage.getItem(KEYS.progress)
+    const s = getStorage()
+    if (!s) return {}
+    const raw = s.getItem(KEYS.progress)
     if (!raw) return {}
     return JSON.parse(raw) as ProgressStore
   } catch {
@@ -18,13 +25,17 @@ function readProgress(): ProgressStore {
   }
 }
 
-function writeProgress(store: ProgressStore) {
-  localStorage.setItem(KEYS.progress, JSON.stringify(store))
+function writeProgress(data: ProgressStore) {
+  const s = getStorage()
+  if (!s) return
+  s.setItem(KEYS.progress, JSON.stringify(data))
 }
 
 export function getProfile(): LocalProfile | null {
   try {
-    const raw = localStorage.getItem(KEYS.profile)
+    const s = getStorage()
+    if (!s) return null
+    const raw = s.getItem(KEYS.profile)
     if (!raw) return null
     return JSON.parse(raw) as LocalProfile
   } catch {
@@ -33,12 +44,16 @@ export function getProfile(): LocalProfile | null {
 }
 
 export function saveProfile(profile: LocalProfile) {
-  localStorage.setItem(KEYS.profile, JSON.stringify(profile))
+  const s = getStorage()
+  if (!s) throw new Error('storage_unavailable')
+  s.setItem(KEYS.profile, JSON.stringify(profile))
 }
 
 export function clearSession() {
-  localStorage.removeItem(KEYS.profile)
-  localStorage.removeItem(KEYS.accessOk)
+  const s = getStorage()
+  if (!s) return
+  s.removeItem(KEYS.profile)
+  s.removeItem(KEYS.accessOk)
 }
 
 /** 切换账号时清空本机刷题进度（避免串到新账号） */
@@ -47,11 +62,19 @@ export function resetLocalQuizState() {
 }
 
 export function markAccessGranted() {
-  localStorage.setItem(KEYS.accessOk, '1')
+  const s = getStorage()
+  if (!s) throw new Error('storage_unavailable')
+  s.setItem(KEYS.accessOk, '1')
 }
 
 export function hasAccessGranted(): boolean {
-  return localStorage.getItem(KEYS.accessOk) === '1'
+  const s = getStorage()
+  if (!s) return false
+  return s.getItem(KEYS.accessOk) === '1'
+}
+
+export function isLoginStorageReady(): boolean {
+  return detectStorageTier() !== 'none'
 }
 
 export function getChapterProgress(chapterId: string): ChapterProgress {

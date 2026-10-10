@@ -1,4 +1,10 @@
+import { detectStorageTier, storageForTier } from './browser-storage'
+
 const KEY = 'geoquiz.gate.creds.v1'
+
+function store(): Storage | null {
+  return storageForTier(detectStorageTier())
+}
 
 export type GateCreds = {
   passphrase: string
@@ -7,7 +13,9 @@ export type GateCreds = {
 
 export function loadGateCreds(): GateCreds {
   try {
-    const raw = localStorage.getItem(KEY)
+    const s = store()
+    if (!s) return { passphrase: '', nickname: '' }
+    const raw = s.getItem(KEY)
     if (!raw) return { passphrase: '', nickname: '' }
     const parsed = JSON.parse(raw) as GateCreds
     return {
@@ -20,7 +28,9 @@ export function loadGateCreds(): GateCreds {
 }
 
 export function saveGateCreds(creds: GateCreds) {
-  localStorage.setItem(
+  const s = store()
+  if (!s) return
+  s.setItem(
     KEY,
     JSON.stringify({
       passphrase: creds.passphrase,
