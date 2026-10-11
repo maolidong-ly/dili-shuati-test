@@ -72,6 +72,32 @@ export async function adminDeleteProfile(
   if (error) throw new Error(error.message)
 }
 
+export async function adminResetAccountPassword(
+  adminPassphrase: string,
+  profileId: string,
+  newPassword: string,
+): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('cloud_not_configured')
+  const { error } = await supabase.rpc('admin_reset_account_password', {
+    p_admin_passphrase: adminPassphrase,
+    p_profile_id: profileId,
+    p_new_password: newPassword,
+  })
+  if (error) {
+    if (error.message.includes('invalid_password')) {
+      throw new Error('登录密码需 4～32 个字符')
+    }
+    if (error.message.includes('not_found')) {
+      throw new Error('账号不存在')
+    }
+    if (error.message.includes('forbidden')) {
+      throw new Error('后台口令不正确')
+    }
+    throw new Error(error.message)
+  }
+}
+
 export type AdminQuestionAttemptRow = {
   question_id: string
   unit_id: string

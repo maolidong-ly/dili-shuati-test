@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import {
   adminDeleteProfile,
   adminListProfiles,
+  adminResetAccountPassword,
   adminSetStatus,
 } from '../lib/admin-api'
 import { isCloudEnabled } from '../lib/supabase'
@@ -77,6 +78,40 @@ export function AdminScreen({ onClose }: Props) {
       await load(adminPass)
     } catch (e) {
       setError(e instanceof Error ? e.message : '删除失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function resetLoginPassword(id: string, nickname: string) {
+    if (!adminPass) return
+    const pw = window.prompt(`为「${nickname}」设置新登录密码（4～32 位）：`)
+    if (pw === null) return
+    if (pw.length < 4 || pw.length > 32) {
+      setError('登录密码需 4～32 个字符')
+      return
+    }
+    const pw2 = window.prompt('请再输入一次以确认：')
+    if (pw2 === null) return
+    if (pw !== pw2) {
+      setError('两次输入的密码不一致')
+      return
+    }
+    if (
+      !confirm(
+        `确定重置「${nickname}」的登录密码？\n该账号会在其它设备上退出，需用新密码重新登录。`,
+      )
+    ) {
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      await adminResetAccountPassword(adminPass, id, pw)
+      await load(adminPass)
+      window.alert(`已重置「${nickname}」的登录密码，请私下告知学生新密码。`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '重置失败')
     } finally {
       setLoading(false)
     }
@@ -261,6 +296,14 @@ export function AdminScreen({ onClose }: Props) {
                   启用
                 </button>
               ) : null}
+              <button
+                type="button"
+                className="btn ghost small"
+                disabled={loading}
+                onClick={() => void resetLoginPassword(row.id, row.nickname)}
+              >
+                重置密码
+              </button>
               <button
                 type="button"
                 className="btn ghost small danger"
