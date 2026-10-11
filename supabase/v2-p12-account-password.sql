@@ -1,6 +1,6 @@
 -- 学生个人登录密码（申请时设置，审核通过后用于登录）
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 alter table public.profiles
   add column if not exists password_hash text;
@@ -24,13 +24,13 @@ create or replace function public._hash_account_password(p_password text)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_pw text;
 begin
   v_pw := public._normalize_account_password(p_password);
-  return crypt(v_pw, gen_salt('bf'));
+  return extensions.crypt(v_pw, extensions.gen_salt('bf'));
 end;
 $$;
 
@@ -38,7 +38,7 @@ create or replace function public._verify_account_password(p_password text, p_ha
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_pw text := trim(p_password);
@@ -49,7 +49,7 @@ begin
   if v_pw = '' then
     return false;
   end if;
-  return crypt(v_pw, p_hash) = p_hash;
+  return extensions.crypt(v_pw, p_hash) = p_hash;
 end;
 $$;
 
