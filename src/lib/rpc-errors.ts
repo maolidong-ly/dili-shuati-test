@@ -13,6 +13,8 @@ const MESSAGES: Record<RegisterErrorCode, string> = {
   account_disabled: '账号已被禁用，请联系老师',
   nickname_not_found: '昵称不存在，请先申请注册',
   device_in_use: '已在其它设备使用，请先在那台设备退出或联系老师',
+  invalid_password: '登录密码需 4～32 个字符',
+  wrong_password: '登录密码不正确',
   unknown: '操作失败，请稍后重试',
 }
 
@@ -37,6 +39,8 @@ export function mapRpcError(message: string): RegisterErrorCode {
   if (message.includes('nickname_not_found')) return 'nickname_not_found'
   if (message.includes('device_in_use')) return 'device_in_use'
   if (message.includes('invalid_device')) return 'unknown'
+  if (message.includes('invalid_password')) return 'invalid_password'
+  if (message.includes('wrong_password')) return 'wrong_password'
   return 'unknown'
 }
 

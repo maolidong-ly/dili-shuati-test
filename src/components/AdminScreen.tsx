@@ -216,6 +216,11 @@ export function AdminScreen({ onClose }: Props) {
             <div>
               <strong>{row.nickname}</strong>
               <span className={`admin-badge status-${row.status}`}>{row.status}</span>
+              <p className="muted small">
+                {row.has_login_password
+                  ? '已设置个人登录密码'
+                  : '未设置个人登录密码（旧账号，仅需班级口令登录）'}
+              </p>
             </div>
             <div className="admin-actions">
               <button

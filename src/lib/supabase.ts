@@ -37,6 +37,18 @@ function validateNickname(trimmed: string): RegisterResult | null {
   return null
 }
 
+function validateAccountPassword(password: string): RegisterResult | null {
+  const len = password.length
+  if (len < 4 || len > 32) {
+    return {
+      ok: false,
+      code: 'invalid_password',
+      message: messageForCode('invalid_password'),
+    }
+  }
+  return null
+}
+
 function devLogin(trimmed: string, passphrase: string): RegisterResult {
   const devPass = import.meta.env.VITE_DEV_ACCESS_PASSPHRASE as string | undefined
   if (!devPass) {
@@ -64,10 +76,13 @@ function devLogin(trimmed: string, passphrase: string): RegisterResult {
 export async function applyForNickname(
   passphrase: string,
   nickname: string,
+  accountPassword: string,
 ): Promise<RegisterResult> {
   const trimmed = nickname.trim()
-  const bad = validateNickname(trimmed)
-  if (bad) return bad
+  const badNick = validateNickname(trimmed)
+  if (badNick) return badNick
+  const badPw = validateAccountPassword(accountPassword)
+  if (badPw) return badPw
 
   const supabase = getSupabase()
   if (!supabase) return devLogin(trimmed, passphrase)
@@ -77,6 +92,7 @@ export async function applyForNickname(
     const res = await supabase.rpc('apply_for_nickname', {
       p_passphrase: passphrase,
       p_nickname: trimmed,
+      p_account_password: accountPassword,
     })
     error = res.error
   } catch (e) {
@@ -99,10 +115,11 @@ export async function applyForNickname(
 export async function enterWithDevice(
   passphrase: string,
   nickname: string,
+  accountPassword: string,
 ): Promise<RegisterResult> {
   const trimmed = nickname.trim()
-  const bad = validateNickname(trimmed)
-  if (bad) return bad
+  const badNick = validateNickname(trimmed)
+  if (badNick) return badNick
 
   const supabase = getSupabase()
   if (!supabase) return devLogin(trimmed, passphrase)
@@ -115,6 +132,7 @@ export async function enterWithDevice(
       p_passphrase: passphrase,
       p_nickname: trimmed,
       p_device_id: deviceId,
+      p_account_password: accountPassword,
     })
     data = res.data
     error = res.error
@@ -150,8 +168,9 @@ export async function enterWithDevice(
 export async function registerNickname(
   passphrase: string,
   nickname: string,
+  accountPassword: string,
 ): Promise<RegisterResult> {
-  return enterWithDevice(passphrase, nickname)
+  return enterWithDevice(passphrase, nickname, accountPassword)
 }
 
 export async function releaseDeviceSession(profile: LocalProfile): Promise<void> {

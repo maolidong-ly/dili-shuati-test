@@ -119,6 +119,8 @@ export type RegisterErrorCode =
   | 'account_disabled'
   | 'nickname_not_found'
   | 'device_in_use'
+  | 'invalid_password'
+  | 'wrong_password'
   | 'unknown'
 
 export type AdminProfileRow = {
@@ -126,6 +128,7 @@ export type AdminProfileRow = {
   nickname: string
   status: 'pending' | 'active' | 'disabled'
   created_at: string
+  has_login_password?: boolean
 }
 
 /** 老师后台维护：题目 id → 星级（Supabase question_meta） */

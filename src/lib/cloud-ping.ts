@@ -17,6 +17,7 @@ export async function checkCloudReachability(): Promise<CloudReachability> {
     await supabase.rpc('apply_for_nickname', {
       p_passphrase: '__connectivity_probe__',
       p_nickname: '__probe__',
+      p_account_password: 'probe',
     })
     // 能收到 RPC 响应（含 invalid_passphrase）即表示网络可达
     return 'ok'

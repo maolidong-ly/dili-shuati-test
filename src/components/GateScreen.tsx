@@ -37,6 +37,8 @@ export function GateScreen({ onReady }: Props) {
   const saved = loadGateCreds()
   const [passphrase, setPassphrase] = useState(saved.passphrase)
   const [nickname, setNickname] = useState(saved.nickname)
+  const [accountPassword, setAccountPassword] = useState('')
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
@@ -106,8 +108,20 @@ export function GateScreen({ onReady }: Props) {
         return
       }
 
+      if (accountPassword.length > 0 && accountPassword.length < 4) {
+        setError('登录密码需 4～32 个字符')
+        return
+      }
       if (mode === 'apply') {
-        const result = await applyForNickname(passphrase, nick)
+        if (accountPassword.length < 4 || accountPassword.length > 32) {
+          setError('请设置 4～32 位的登录密码')
+          return
+        }
+        if (accountPassword !== accountPasswordConfirm) {
+          setError('两次输入的登录密码不一致')
+          return
+        }
+        const result = await applyForNickname(passphrase, nick, accountPassword)
         if (!result.ok) {
           if (result.code === 'pending_approval') {
             setInfo(result.message)
@@ -120,7 +134,7 @@ export function GateScreen({ onReady }: Props) {
         return
       }
 
-      const result = await enterWithDevice(passphrase, nick)
+      const result = await enterWithDevice(passphrase, nick, accountPassword)
       if (!result.ok) {
         setError(result.message)
         return
@@ -159,6 +173,7 @@ export function GateScreen({ onReady }: Props) {
               setMode('login')
               setError('')
               setInfo('')
+              setAccountPasswordConfirm('')
             }}
           >
             登录
@@ -170,6 +185,8 @@ export function GateScreen({ onReady }: Props) {
               setMode('apply')
               setError('')
               setInfo('')
+              setAccountPassword('')
+              setAccountPasswordConfirm('')
             }}
           >
             申请账号
@@ -216,10 +233,10 @@ export function GateScreen({ onReady }: Props) {
           />
         </label>
         <label>
-          虚拟昵称
+          登录名（虚拟昵称）
           <input
             type="text"
-            autoComplete="nickname"
+            autoComplete="username"
             placeholder={
               mode === 'apply'
                 ? '2～16 字，提交后等老师审核'
@@ -234,6 +251,36 @@ export function GateScreen({ onReady }: Props) {
             required
           />
         </label>
+        <label>
+          登录密码
+          <input
+            type="password"
+            autoComplete={mode === 'apply' ? 'new-password' : 'current-password'}
+            placeholder={
+              mode === 'apply'
+                ? '4～32 位，审核通过后用于登录'
+                : '申请账号时设置的密码'
+            }
+            maxLength={32}
+            value={accountPassword}
+            onChange={(e) => setAccountPassword(e.target.value)}
+            required={mode === 'apply'}
+          />
+        </label>
+        {mode === 'apply' ? (
+          <label>
+            确认登录密码
+            <input
+              type="password"
+              autoComplete="new-password"
+              placeholder="再输入一次登录密码"
+              maxLength={32}
+              value={accountPasswordConfirm}
+              onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+              required
+            />
+          </label>
+        ) : null}
         {error ? <p className="error">{error}</p> : null}
         {info ? <p className="info">{info}</p> : null}
         {cloud && cloudStatus === 'unreachable' ? (
@@ -265,7 +312,7 @@ export function GateScreen({ onReady }: Props) {
       ) : (
         <p className="hint">
           {cloud
-            ? '新同学请先申请账号；通过后在本机登录。同一账号仅一台设备在线。'
+            ? '新同学申请时需设置登录密码；老师审核通过后，用登录名 + 登录密码登录（仍需班级访问口令）。'
             : '已注册昵称 + 口令即可使用。'}
         </p>
       )}
