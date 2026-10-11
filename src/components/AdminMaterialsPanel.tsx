@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   adminDeleteMaterial,
   adminListMaterials,
   adminUploadMaterial,
   formatByteSize,
+  MATERIALS_STORAGE_QUOTA_BYTES,
   MATERIAL_CATEGORY_LABEL,
+  sumMaterialBytes,
   type MaterialCategory,
   type TeacherMaterialRow,
 } from '../lib/materials'
@@ -38,6 +40,9 @@ export function AdminMaterialsPanel({ adminPass }: Props) {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  const totalBytes = useMemo(() => sumMaterialBytes(rows), [rows])
+  const quotaPercent = (totalBytes / MATERIALS_STORAGE_QUOTA_BYTES) * 100
 
   async function handleUpload(e: FormEvent) {
     e.preventDefault()
@@ -121,8 +126,19 @@ export function AdminMaterialsPanel({ adminPass }: Props) {
         </button>
       </form>
 
-      <div className="admin-toolbar">
-        <strong>已上传（{rows.length}）</strong>
+      <div className="admin-toolbar admin-materials-summary">
+        <div>
+          <strong>已上传（{rows.length}）</strong>
+          <p className="muted small materials-storage-usage">
+            资料占用 <strong>{formatByteSize(totalBytes)}</strong>
+            {' / '}
+            约 {formatByteSize(MATERIALS_STORAGE_QUOTA_BYTES)} 云存储（
+            {quotaPercent < 0.1 && totalBytes > 0
+              ? '<0.1'
+              : quotaPercent.toFixed(quotaPercent >= 10 ? 0 : 1)}
+            %）
+          </p>
+        </div>
         <button
           type="button"
           className="btn ghost small"

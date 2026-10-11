@@ -33,6 +33,13 @@ export const MATERIAL_GROUP_LABEL = {
 
 const BUCKET = 'teacher-materials'
 
+/** Supabase 免费版项目文件存储约 1 GB，供后台占用提示 */
+export const MATERIALS_STORAGE_QUOTA_BYTES = 1024 * 1024 * 1024
+
+export function sumMaterialBytes(rows: Pick<TeacherMaterialRow, 'byte_size'>[]): number {
+  return rows.reduce((sum, r) => sum + (r.byte_size > 0 ? r.byte_size : 0), 0)
+}
+
 export function materialPublicUrl(storagePath: string): string | null {
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined
   if (!base) return null
