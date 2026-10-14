@@ -8,12 +8,14 @@ import { useQuizUnit } from '../hooks/useQuizUnit'
 import { filterQuestions, starLabel } from '../lib/question-filter'
 import { correctIndicesForDisplay, isAnswerCorrect } from '../lib/question-grade'
 import {
-  formatStemWithIndex,
   indexWithinKind,
   KIND_LABELS,
   questionKind,
   sortQuestionsByKind,
+  stemHasLeadingIndex,
 } from '../lib/question-display'
+import { stripQuestionImagesForPreview } from '../lib/question-rich-text'
+import { QuestionRichText } from './QuestionRichText'
 import { getEffectiveStars } from '../lib/question-meta'
 import {
   finishCloudPracticeSession,
@@ -262,10 +264,7 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         unitId: answerUnitId,
         unitLabel,
         kind: inferWrongBookKind(answerUnitId),
-        stemPreview:
-          question.stem.length > 48
-            ? `${question.stem.slice(0, 48)}…`
-            : question.stem,
+        stemPreview: stripQuestionImagesForPreview(question.stem, 48),
       })
     } else {
       removeFromWrongBook(question.id)
@@ -400,7 +399,8 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
         ) : null}
         <p className="stem">
           {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
-          {formatStemWithIndex(kindIndex, question.stem)}
+          {!stemHasLeadingIndex(question.stem.trim()) ? `${kindIndex}. ` : null}
+          <QuestionRichText text={question.stem} block />
         </p>
         <ul className={`options${isJudgment ? ' options-judgment' : ''}`}>
           {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (
@@ -412,11 +412,15 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
                 onClick={() => onPickOption(i)}
               >
                 {isJudgment ? (
-                  <span className="judgment-label">{judgmentButtonLabel(i, text)}</span>
+                  /!\[[^\]]*\]\([^)]+\)/.test(text) ? (
+                    <QuestionRichText text={text} block />
+                  ) : (
+                    <span className="judgment-label">{judgmentButtonLabel(i, text)}</span>
+                  )
                 ) : (
                   <>
                     <span className="opt-label">{String.fromCharCode(65 + i)}</span>
-                    <span>{text}</span>
+                    <QuestionRichText text={text} />
                   </>
                 )}
               </button>

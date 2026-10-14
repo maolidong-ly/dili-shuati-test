@@ -19,8 +19,10 @@ import {
   sortOrderForKind,
 } from '../lib/question-display'
 import { getSupabase } from '../lib/supabase'
+import { AdminQuestionImageUpload } from './AdminQuestionImageUpload'
 import { QuestionReadonlyCard } from './QuestionReadonlyCard'
 import { UnitExportButtons } from './UnitExportButtons'
+import { stripQuestionImagesForPreview } from '../lib/question-rich-text'
 import type { ChoiceQuestion, QuestionKind, StarLevel } from '../types'
 import { starLabel } from '../lib/question-filter'
 
@@ -57,8 +59,7 @@ function QuestionListBlock({
           <li key={q.id} className="admin-row card admin-q-row">
             <div>
               <strong>
-                {qi + 1}. {q.stem.slice(0, 56)}
-                {q.stem.length > 56 ? '…' : ''}
+                {qi + 1}. {stripQuestionImagesForPreview(q.stem, 56)}
               </strong>
               {q.stars ? (
                 <p className="admin-q-stars muted small">{starLabel(q.stars)}</p>
@@ -359,16 +360,40 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
         <label>
           题干
           <textarea value={stem} onChange={(e) => setStem(e.target.value)} required rows={3} />
+          <AdminQuestionImageUpload
+            unitId={unitId}
+            disabled={loading}
+            alt="题干图"
+            currentText={stem}
+            onInsert={setStem}
+          />
+          <span className="muted small setup-hint">
+            可上传图片自动插入；也支持手动粘贴 Markdown：![说明](图片地址)
+          </span>
         </label>
         {kind === 'judgment' ? (
           <>
             <label>
               选项「对」
               <input value={opt0} onChange={(e) => setOpt0(e.target.value)} required />
+              <AdminQuestionImageUpload
+                unitId={unitId}
+                disabled={loading}
+                alt="选项对"
+                currentText={opt0}
+                onInsert={setOpt0}
+              />
             </label>
             <label>
               选项「错」
               <input value={opt1} onChange={(e) => setOpt1(e.target.value)} required />
+              <AdminQuestionImageUpload
+                unitId={unitId}
+                disabled={loading}
+                alt="选项错"
+                currentText={opt1}
+                onInsert={setOpt1}
+              />
             </label>
             <label>
               正确答案
@@ -394,6 +419,13 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
                   value={value}
                   onChange={(e) => setter(e.target.value)}
                   required
+                />
+                <AdminQuestionImageUpload
+                  unitId={unitId}
+                  disabled={loading}
+                  alt={`选项${String.fromCharCode(65 + i)}`}
+                  currentText={value}
+                  onInsert={setter}
                 />
               </label>
             ))}
@@ -446,6 +478,13 @@ export function AdminQuestionsPanel({ adminPass, catalogKind }: Props) {
         <label>
           解析（可选）
           <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={2} />
+          <AdminQuestionImageUpload
+            unitId={unitId}
+            disabled={loading}
+            alt="解析图"
+            currentText={explanation}
+            onInsert={setExplanation}
+          />
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button type="submit" className="btn primary" disabled={loading}>

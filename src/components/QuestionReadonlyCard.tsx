@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import {
-  formatStemWithIndex,
   indexWithinKind,
   KIND_LABELS,
   questionKind,
   sortQuestionsByKind,
+  stemHasLeadingIndex,
 } from '../lib/question-display'
 import { correctIndicesForDisplay } from '../lib/question-grade'
 import { getEffectiveStars } from '../lib/question-meta'
 import { starLabel } from '../lib/question-filter'
 import type { ChoiceQuestion } from '../types'
+import { QuestionRichText } from './QuestionRichText'
 
 type Props = {
   question: ChoiceQuestion
@@ -43,7 +44,10 @@ export function QuestionReadonlyCard({
         {KIND_LABELS[qKind]}
         {stars ? ` · ${starLabel(stars)}` : ''}
       </p>
-      <p className="stem">{formatStemWithIndex(kindIndex, question.stem)}</p>
+      <p className="stem">
+        {!stemHasLeadingIndex(question.stem.trim()) ? `${kindIndex}. ` : null}
+        <QuestionRichText text={question.stem} block />
+      </p>
       <ul className={`options readonly${isJudgment ? ' options-judgment' : ''}`}>
         {opts.map((text, i) => {
           const isCorrect = showAnswer && correctIdx.includes(i)
@@ -55,11 +59,11 @@ export function QuestionReadonlyCard({
                 }
               >
                 {isJudgment ? (
-                  <span>{text}</span>
+                  <QuestionRichText text={text} block />
                 ) : (
                   <>
                     <span className="opt-label">{String.fromCharCode(65 + i)}</span>
-                    <span>{text}</span>
+                    <QuestionRichText text={text} />
                     {isCorrect ? <span className="opt-tag">正解</span> : null}
                   </>
                 )}
@@ -80,7 +84,9 @@ export function QuestionReadonlyCard({
             </button>
           ) : null}
           {(explainDisplay === 'open' || explainOpen) ? (
-            <p className="explain">{question.explanation}</p>
+            <p className="explain">
+              <QuestionRichText text={question.explanation ?? ''} block />
+            </p>
           ) : null}
         </div>
       ) : null}
