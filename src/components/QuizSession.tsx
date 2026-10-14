@@ -15,7 +15,7 @@ import {
   stemHasLeadingIndex,
 } from '../lib/question-display'
 import { stripQuestionImagesForPreview } from '../lib/question-rich-text'
-import { QuestionRichText } from './QuestionRichText'
+import { RichFieldLayout } from './RichFieldLayout'
 import { getEffectiveStars } from '../lib/question-meta'
 import {
   finishCloudPracticeSession,
@@ -397,11 +397,18 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
             {starLabel(stars)}
           </p>
         ) : null}
-        <p className="stem">
-          {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
-          {!stemHasLeadingIndex(question.stem.trim()) ? `${kindIndex}. ` : null}
-          <QuestionRichText text={question.stem} block />
-        </p>
+        <div className="stem">
+          <RichFieldLayout
+            content={question.stem}
+            variant="stem"
+            prefix={
+              <>
+                {isMulti ? '【多选】' : isJudgment ? '【判断】' : ''}
+                {!stemHasLeadingIndex(question.stem.trim()) ? `${kindIndex}. ` : null}
+              </>
+            }
+          />
+        </div>
         <ul className={`options${isJudgment ? ' options-judgment' : ''}`}>
           {(isJudgment ? question.options.slice(0, 2) : question.options).map((text, i) => (
             <li key={`${question.id}-${i}`}>
@@ -413,14 +420,14 @@ export function QuizSession({ launch, profile, onBack, onProgress }: Props) {
               >
                 {isJudgment ? (
                   /!\[[^\]]*\]\([^)]+\)/.test(text) ? (
-                    <QuestionRichText text={text} block />
+                    <RichFieldLayout content={text} variant="option" />
                   ) : (
                     <span className="judgment-label">{judgmentButtonLabel(i, text)}</span>
                   )
                 ) : (
                   <>
                     <span className="opt-label">{String.fromCharCode(65 + i)}</span>
-                    <QuestionRichText text={text} />
+                    <RichFieldLayout content={text} variant="option" />
                   </>
                 )}
               </button>

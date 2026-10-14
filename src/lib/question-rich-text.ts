@@ -35,3 +35,28 @@ export function stripQuestionImagesForPreview(text: string, maxLen = 56): string
   if (plain.length <= maxLen) return plain
   return `${plain.slice(0, maxLen)}…`
 }
+
+export type RichImageRef = { alt: string; url: string }
+
+/** 文字合并在前，图片统一在后（用于题干：文字 → 居中图 → 选项） */
+export function splitRichContent(input: string): { text: string; images: RichImageRef[] } {
+  const segments = parseQuestionRichText(input)
+  const images: RichImageRef[] = []
+  const textParts: string[] = []
+  for (const seg of segments) {
+    if (seg.kind === 'image') {
+      images.push({ alt: seg.alt, url: seg.url })
+    } else if (seg.value) {
+      textParts.push(seg.value)
+    }
+  }
+  const text = textParts
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return { text, images }
+}
+
+export function richTextPlain(input: string): string {
+  return splitRichContent(input).text
+}

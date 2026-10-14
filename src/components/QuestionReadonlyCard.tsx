@@ -10,7 +10,7 @@ import { correctIndicesForDisplay } from '../lib/question-grade'
 import { getEffectiveStars } from '../lib/question-meta'
 import { starLabel } from '../lib/question-filter'
 import type { ChoiceQuestion } from '../types'
-import { QuestionRichText } from './QuestionRichText'
+import { RichFieldLayout } from './RichFieldLayout'
 
 type Props = {
   question: ChoiceQuestion
@@ -44,10 +44,17 @@ export function QuestionReadonlyCard({
         {KIND_LABELS[qKind]}
         {stars ? ` · ${starLabel(stars)}` : ''}
       </p>
-      <p className="stem">
-        {!stemHasLeadingIndex(question.stem.trim()) ? `${kindIndex}. ` : null}
-        <QuestionRichText text={question.stem} block />
-      </p>
+      <div className="stem">
+        <RichFieldLayout
+          content={question.stem}
+          variant="stem"
+          prefix={
+            !stemHasLeadingIndex(question.stem.trim()) ? (
+              <span className="stem-index">{kindIndex}. </span>
+            ) : null
+          }
+        />
+      </div>
       <ul className={`options readonly${isJudgment ? ' options-judgment' : ''}`}>
         {opts.map((text, i) => {
           const isCorrect = showAnswer && correctIdx.includes(i)
@@ -59,11 +66,11 @@ export function QuestionReadonlyCard({
                 }
               >
                 {isJudgment ? (
-                  <QuestionRichText text={text} block />
+                  <RichFieldLayout content={text} variant="option" />
                 ) : (
                   <>
                     <span className="opt-label">{String.fromCharCode(65 + i)}</span>
-                    <QuestionRichText text={text} />
+                    <RichFieldLayout content={text} variant="option" />
                     {isCorrect ? <span className="opt-tag">正解</span> : null}
                   </>
                 )}
@@ -84,9 +91,9 @@ export function QuestionReadonlyCard({
             </button>
           ) : null}
           {(explainDisplay === 'open' || explainOpen) ? (
-            <p className="explain">
-              <QuestionRichText text={question.explanation ?? ''} block />
-            </p>
+            <div className="explain">
+              <RichFieldLayout content={question.explanation ?? ''} variant="explain" />
+            </div>
           ) : null}
         </div>
       ) : null}

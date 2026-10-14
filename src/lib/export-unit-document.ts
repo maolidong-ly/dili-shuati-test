@@ -1,6 +1,7 @@
 import {
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   PageBreak,
   Paragraph,
@@ -15,7 +16,9 @@ import {
   KIND_LABELS,
   questionKind,
 } from './question-display'
+import { loadExportImage } from './export-image'
 import { correctIndicesForDisplay } from './question-grade'
+import { richTextPlain, splitRichContent, type RichImageRef } from './question-rich-text'
 
 export type ExportUnitOptions = {
   unitTitle: string
@@ -53,15 +56,57 @@ function formatAnswerText(q: ChoiceQuestion): string {
     return idx
       .map((i) => {
         const letter = String.fromCharCode(65 + i)
-        const text = opts[i]?.trim()
+        const text = richTextPlain(opts[i] ?? '')
         return text ? `${letter}. ${text}` : letter
       })
       .join('；')
   }
   const i = idx[0]
   const letter = String.fromCharCode(65 + i)
-  const text = opts[i]?.trim()
+  const text = richTextPlain(opts[i] ?? '')
   return text ? `${letter}. ${text}` : letter
+}
+
+async function appendDocxCenteredImages(
+  children: Paragraph[],
+  images: RichImageRef[],
+): Promise<void> {
+  for (const img of images) {
+    const loaded = await loadExportImage(img.url)
+    if (loaded) {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 100, after: 140 },
+          children: [
+            new ImageRun({
+              data: loaded.bytes,
+              type: loaded.type,
+              transformation: {
+                width: loaded.widthPx,
+                height: loaded.heightPx,
+              },
+            }),
+          ],
+        }),
+      )
+    } else {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 120 },
+          children: [
+            new TextRun({
+              text: `[图片未能加载：${img.alt}]`,
+              font: '宋体',
+              size: 20,
+              color: '888888',
+            }),
+          ],
+        }),
+      )
+    }
+  }
 }
 
 function defaultSubtitle(): string {
@@ -116,9 +161,10 @@ export async function downloadUnitDocx(opts: ExportUnitOptions): Promise<void> {
   ]
 
   const grouped = groupQuestionsByKind(opts.questions)
-  KIND_ORDER.forEach((kind, ki) => {
+  for (let ki = 0; ki < KIND_ORDER.length; ki++) {
+    const kind = KIND_ORDER[ki]!
     const list = grouped[kind]
-    if (list.length === 0) return
+    if (list.length === 0) continue
     children.push(
       new Paragraph({
         heading: HeadingLevel.HEADING_1,
@@ -133,33 +179,42 @@ export async function downloadUnitDocx(opts: ExportUnitOptions): Promise<void> {
         ],
       }),
     )
-    list.forEach((q, i) => {
-      const stem = formatStemWithIndex(i + 1, q.stem)
+    for (let i = 0; i < list.length; i++) {
+      const q = list[i]!
+      const { text: stemText, images: stemImages } = splitRichContent(q.stem)
+      const stemLine = formatStemWithIndex(
+        i + 1,
+        stemText || (stemImages.length > 0 ? '（见下图）' : ''),
+      )
       children.push(
         new Paragraph({
-          spacing: { before: 200, after: 120 },
-          children: [new TextRun({ text: stem, font: '宋体', size: 28 })],
+          spacing: { before: 200, after: stemImages.length ? 80 : 120 },
+          children: [new TextRun({ text: stemLine, font: '宋体', size: 28 })],
         }),
       )
+      await appendDocxCenteredImages(children, stemImages)
       const isJudgment = questionKind(q) === 'judgment'
       const options = isJudgment ? q.options.slice(0, 2) : q.options
-      options.forEach((text, oi) => {
+      for (let oi = 0; oi < options.length; oi++) {
+        const raw = options[oi] ?? ''
+        const { text: optText, images: optImages } = splitRichContent(raw)
         children.push(
           new Paragraph({
             indent: { left: 480 },
-            spacing: { after: 80 },
+            spacing: { after: optImages.length ? 60 : 80 },
             children: [
               new TextRun({
-                text: `${String.fromCharCode(65 + oi)}. ${text}`,
+                text: `${String.fromCharCode(65 + oi)}. ${optText || (optImages.length ? '（见下图）' : '')}`,
                 font: '宋体',
                 size: 24,
               }),
             ],
           }),
         )
-      })
-    })
-  })
+        await appendDocxCenteredImages(children, optImages)
+      }
+    }
+  }
 
   if (opts.includeAnswers) {
     children.push(
@@ -197,13 +252,14 @@ export async function downloadUnitDocx(opts: ExportUnitOptions): Promise<void> {
         }),
       )
       if (q.explanation?.trim()) {
+        const { text: expText, images: expImages } = splitRichContent(q.explanation)
         children.push(
           new Paragraph({
             indent: { left: 480 },
-            spacing: { after: 120 },
+            spacing: { after: expImages.length ? 60 : 120 },
             children: [
               new TextRun({
-                text: `解析：${q.explanation.trim()}`,
+                text: `解析：${expText || (expImages.length ? '（见下图）' : '')}`,
                 font: '宋体',
                 size: 22,
                 color: '444444',
@@ -211,6 +267,7 @@ export async function downloadUnitDocx(opts: ExportUnitOptions): Promise<void> {
             ],
           }),
         )
+        await appendDocxCenteredImages(children, expImages)
       }
     }
   }
@@ -239,12 +296,33 @@ export function buildExportHtml(opts: ExportUnitOptions): string {
     if (list.length === 0) return
     body += `<h2 class="kind">${KIND_ZH[ki]}、${escapeHtml(KIND_LABELS[kind])}（共 ${list.length} 题）</h2>`
     list.forEach((q, i) => {
-      const stem = formatStemWithIndex(i + 1, q.stem)
-      body += `<p class="stem">${escapeHtml(stem)}</p><ul class="opts">`
+      const { text: stemText, images: stemImages } = splitRichContent(q.stem)
+      const stemLine = formatStemWithIndex(
+        i + 1,
+        stemText || (stemImages.length > 0 ? '（见下图）' : ''),
+      )
+      body += `<div class="stem-block"><p class="stem-text">${escapeHtml(stemLine)}</p>`
+      if (stemImages.length > 0) {
+        body += `<div class="export-images-center">`
+        for (const img of stemImages) {
+          body += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt)}" crossorigin="anonymous" />`
+        }
+        body += `</div>`
+      }
+      body += `</div><ul class="opts">`
       const isJudgment = questionKind(q) === 'judgment'
       const options = isJudgment ? q.options.slice(0, 2) : q.options
-      options.forEach((text, oi) => {
-        body += `<li>${String.fromCharCode(65 + oi)}. ${escapeHtml(text)}</li>`
+      options.forEach((raw, oi) => {
+        const { text: optText, images: optImages } = splitRichContent(raw)
+        body += `<li><div class="opt-line">${String.fromCharCode(65 + oi)}. ${escapeHtml(optText || (optImages.length ? '（见下图）' : ''))}</div>`
+        if (optImages.length > 0) {
+          body += `<div class="export-images-center export-images-option">`
+          for (const img of optImages) {
+            body += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt)}" crossorigin="anonymous" />`
+          }
+          body += `</div>`
+        }
+        body += `</li>`
       })
       body += `</ul>`
     })
@@ -256,7 +334,16 @@ export function buildExportHtml(opts: ExportUnitOptions): string {
     for (const { index, q, kindIndex, kind } of buildAnswerBlocks(opts.questions)) {
       answers += `<p class="ans-line"><strong>${index}. [${KIND_LABELS[kind]} ${kindIndex}]</strong> 答案：${escapeHtml(formatAnswerText(q))}</p>`
       if (q.explanation?.trim()) {
-        answers += `<p class="explain-line">解析：${escapeHtml(q.explanation.trim())}</p>`
+        const { text: expText, images: expImages } = splitRichContent(q.explanation)
+        answers += `<div class="explain-block-export"><p class="explain-line">解析：${escapeHtml(expText || (expImages.length ? '（见下图）' : ''))}</p>`
+        if (expImages.length > 0) {
+          answers += `<div class="export-images-center">`
+          for (const img of expImages) {
+            answers += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt)}" crossorigin="anonymous" />`
+          }
+          answers += `</div>`
+        }
+        answers += `</div>`
       }
     }
   }
@@ -275,13 +362,37 @@ const EXPORT_CSS = `
 .export-doc .title { text-align: center; font-size: 22px; font-weight: 800; margin: 0 0 8px; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
 .export-doc .subtitle { text-align: center; font-size: 12px; color: #64748b; margin: 0 0 24px; }
 .export-doc .kind { font-size: 16px; font-weight: 800; margin: 20px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #e2e8f0; }
-.export-doc .stem { font-size: 14px; margin: 14px 0 8px; font-weight: 600; }
-.export-doc .opts { margin: 0 0 12px; padding-left: 1.5em; font-size: 13px; }
-.export-doc .opts li { margin: 4px 0; }
+.export-doc .stem-block { margin: 14px 0 6px; }
+.export-doc .stem-text { font-size: 14px; margin: 0 0 6px; font-weight: 600; }
+.export-doc .export-images-center { text-align: center; margin: 8px 0 12px; }
+.export-doc .export-images-center img { display: inline-block; max-width: 92%; max-height: 280px; width: auto; height: auto; margin: 4px auto; border: 1px solid #e2e8f0; border-radius: 6px; }
+.export-doc .export-images-option { margin-top: 4px; margin-bottom: 2px; }
+.export-doc .export-images-option img { max-height: 200px; }
+.export-doc .opts { margin: 0 0 12px; padding-left: 1.5em; font-size: 13px; list-style: none; }
+.export-doc .opts li { margin: 8px 0; }
+.export-doc .opt-line { margin-bottom: 2px; }
 .export-doc .ans-line { font-size: 13px; margin: 10px 0 4px; }
-.export-doc .explain-line { font-size: 12px; color: #475569; margin: 0 0 12px 1em; }
+.export-doc .explain-block-export { margin: 0 0 12px 1em; }
+.export-doc .explain-line { font-size: 12px; color: #475569; margin: 0 0 6px; }
 .export-doc .page-break { page-break-before: always; break-before: page; height: 1px; margin-top: 24px; }
 `
+
+async function waitForExportImages(root: HTMLElement): Promise<void> {
+  const imgs = [...root.querySelectorAll('img')]
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve()
+            return
+          }
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+        }),
+    ),
+  )
+}
 
 export async function downloadUnitPdf(opts: ExportUnitOptions): Promise<void> {
   if (opts.questions.length === 0) throw new Error('暂无题目')
@@ -294,6 +405,7 @@ export async function downloadUnitPdf(opts: ExportUnitOptions): Promise<void> {
   wrapper.appendChild(style)
   wrapper.insertAdjacentHTML('beforeend', buildExportHtml(opts))
   document.body.appendChild(wrapper)
+  await waitForExportImages(wrapper)
 
   try {
     await html2pdf()
