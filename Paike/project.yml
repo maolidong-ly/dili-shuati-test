@@ -40,12 +40,28 @@ targets:
     entitlements:
       path: Paike/Paike.entitlements
     scheme:
-      testTargets: []
+      testTargets:
+        - PaikeTests
+
+  PaikeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PaikeTests
+    dependencies:
+      - target: Paike
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.xidian.paike.tests
 
 schemes:
   Paike:
     build:
       targets:
         Paike: all
+    test:
+      targets:
+        - PaikeTests
     run:
       config: Debug

@@ -8,6 +8,8 @@ final class ScheduleTable {
     var name: String
     var bindClassName: String
     var periodTemplateRef: String
+    /// JSON-encoded legacy `timeList` rows for this table.
+    var timeListJSON: String
     var onlyEmpty: Bool
     var checkGlobal: Bool
     var spreadWeek: Bool
@@ -23,6 +25,7 @@ final class ScheduleTable {
         name: String = "新课表",
         bindClassName: String = "",
         periodTemplateRef: String = "default",
+        timeListJSON: String = "[]",
         onlyEmpty: Bool = true,
         checkGlobal: Bool = true,
         spreadWeek: Bool = true,
@@ -34,6 +37,7 @@ final class ScheduleTable {
         self.name = name
         self.bindClassName = bindClassName
         self.periodTemplateRef = periodTemplateRef
+        self.timeListJSON = timeListJSON
         self.onlyEmpty = onlyEmpty
         self.checkGlobal = checkGlobal
         self.spreadWeek = spreadWeek

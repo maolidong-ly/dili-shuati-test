@@ -1,6 +1,6 @@
 # Paike (排课)
 
-Universal **SwiftUI + SwiftData** app for **macOS 14+** and **iPadOS 17+**. Mac App Store target: sandboxed, offline-first, legacy `fullBackup` import (stub).
+Universal **SwiftUI + SwiftData** app for **macOS 14+** and **iPadOS 17+**. Mac App Store target: sandboxed, offline-first, legacy `fullBackup` JSON import.
 
 ## 最简单：本地测试（Mac）
 
@@ -40,9 +40,9 @@ Select the **Paike** scheme and run on **My Mac** or an **iPad** simulator.
 | `Paike/Core/` | SwiftData models, schema version |
 | `Paike/Conflict/` | `ConflictEngine` protocol + stub |
 | `Paike/Scheduling/` | `SchedulingEngine` protocol + stub |
-| `Paike/Import/` | `LegacyBackupImporting` + stub |
+| `Paike/Import/` | `LegacyBackupParser` + `LegacyBackupImporter` |
 | `Paike/Features/` | Tab roots: 课表、资料、课消、统计、设置 |
-| `Resources/Fixtures/` | Legacy backup JSON shape placeholder |
+| `Resources/Fixtures/` | Legacy `fullBackup` sample JSON |
 
 ## Bundle ID
 
@@ -50,4 +50,4 @@ Suggested: **`com.xidian.paike`**
 
 ## Status
 
-Scaffold only — auto-schedule and full import logic are **not** implemented yet.
+Legacy **fullBackup** import is implemented (PK-11). Auto-schedule / conflict engines remain stubs.

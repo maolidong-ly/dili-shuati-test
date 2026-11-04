@@ -1,0 +1,53 @@
+{
+  "backupType": "fullBackup",
+  "backupTime": "2026-11-04 12:00:00",
+  "appName": "排课",
+  "appSubtitle": "",
+  "currentTableId": "table_example",
+  "multiTableData": [
+    {
+      "id": "table_example",
+      "name": "示例课表",
+      "bindClass": "高一1班",
+      "data": {
+        "0-0": "语文|张老师|101|高一1班",
+        "1-2": "数学|李老师|102|高一1班|09:00|10:30"
+      },
+      "timeList": [
+        { "name": "第1节 08:20-10:20", "isSplit": false },
+        { "name": "午休", "isSplit": true },
+        { "name": "第2节 10:30-12:00", "isSplit": false }
+      ],
+      "periodTemplateRef": "default",
+      "autoScheduleConfig": {
+        "constraints": [],
+        "settings": {
+          "onlyEmpty": true,
+          "checkGlobal": true,
+          "spreadWeek": true
+        }
+      }
+    }
+  ],
+  "classList": [
+    { "name": "高一1班", "grade": "高一" },
+    "旧格式班级"
+  ],
+  "teacherList": ["张老师", "李老师"],
+  "roomList": ["101", "102"],
+  "courseList": [
+    { "name": "语文", "teacher": "张老师", "room": "101", "cls": "高一1班" }
+  ],
+  "timeTemplateList": [
+    {
+      "name": "default",
+      "timeList": [
+        { "name": "第1节 08:20-10:20", "isSplit": false }
+      ]
+    }
+  ],
+  "timeTemplateHiddenNames": ["builtin-hidden"],
+  "classTemplatePrefs": {
+    "高一1班": "default"
+  }
+}

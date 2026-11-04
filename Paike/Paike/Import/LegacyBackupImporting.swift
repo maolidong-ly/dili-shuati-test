@@ -1,13 +1,14 @@
 import Foundation
+import SwiftData
 
-struct LegacyFullBackupMetadata: Sendable {
+struct LegacyFullBackupMetadata: Sendable, Equatable {
     var backupType: String
     var backupTime: String?
     var currentTableID: String?
     var appName: String?
 }
 
-struct LegacyImportSummary: Sendable {
+struct LegacyImportSummary: Sendable, Equatable {
     var tableCount: Int
     var classCount: Int
     var teacherCount: Int
@@ -31,9 +32,9 @@ enum LegacyImportError: Error, LocalizedError {
 }
 
 protocol LegacyBackupImporting: Sendable {
-    /// Parse legacy `fullBackup` JSON (see `Resources/Fixtures/fullBackup.placeholder.json`).
+    /// Parse legacy `fullBackup` JSON (see `Resources/Fixtures/fullBackup.sample.json`).
     func preview(data: Data) async throws -> (LegacyFullBackupMetadata, LegacyImportSummary)
 
-    /// Normalize and persist into SwiftData (stub returns summary only).
-    func importFullBackup(data: Data) async throws -> LegacyImportSummary
+    /// Normalize and persist into SwiftData (replaces catalog + schedule entities).
+    func importFullBackup(data: Data, context: ModelContext) async throws -> LegacyImportSummary
 }
