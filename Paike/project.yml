@@ -1,0 +1,51 @@
+name: Paike
+options:
+  bundleIdPrefix: com.xidian
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+  groupSortPosition: top
+  generateEmptyDirectories: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_APP_SANDBOX: YES
+targets:
+  Paike:
+    type: application
+    supportedDestinations: [macOS, iPad]
+    sources:
+      - path: Paike
+        excludes:
+          - "**/*.entitlements"
+      - path: Resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xidian.paike
+        PRODUCT_NAME: Paike
+        INFOPLIST_KEY_CFBundleDisplayName: 排课
+        GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+    entitlements:
+      path: Paike/Paike.entitlements
+    scheme:
+      testTargets: []
+
+schemes:
+  Paike:
+    build:
+      targets:
+        Paike: all
+    run:
+      config: Debug
