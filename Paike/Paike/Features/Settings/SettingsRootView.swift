@@ -160,15 +160,17 @@ struct SettingsRootView: View {
     }
 
     private func importPayloadData() throws -> Data {
+        // Prefer in-memory payload from preview; re-reading security-scoped URLs after the
+        // confirmation alert often fails and can trap in AppKit on macOS.
+        if let data = pendingImportData {
+            return data
+        }
         if let url = pendingImportURL {
             let accessed = url.startAccessingSecurityScopedResource()
             defer {
                 if accessed { url.stopAccessingSecurityScopedResource() }
             }
             return try Data(contentsOf: url)
-        }
-        if let data = pendingImportData {
-            return data
         }
         throw CocoaError(.fileReadUnknown)
     }

@@ -26,7 +26,10 @@ struct DefaultConflictEngine: ConflictEngine {
     }
 
     private func tablesForCheck(request: ConflictCheckRequest) -> [ConflictScheduleTableSnapshot] {
-        let allByID = Dictionary(uniqueKeysWithValues: request.tables.map { ($0.legacyID, $0) })
+        let allByID = Dictionary(
+            request.tables.map { ($0.legacyID, $0) },
+            uniquingKeysWithValues: { first, _ in first }
+        )
 
         let scopedIDs: Set<String> = switch request.scope {
         case .allTables:
