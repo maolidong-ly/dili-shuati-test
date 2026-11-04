@@ -1,0 +1,14 @@
+# XcodeGen
+*.xcodeproj
+*.xcworkspace
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# Build
+DerivedData/
+build/
+
+# macOS
+.DS_Store
