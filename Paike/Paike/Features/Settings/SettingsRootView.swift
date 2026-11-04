@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 struct SettingsRootView: View {
     @Environment(\.modelContext) private var modelContext
 
-    private let conflictEngine: any ConflictEngine = StubConflictEngine()
+    private let conflictEngine: any ConflictEngine = DefaultConflictEngine()
     private let schedulingEngine: any SchedulingEngine = StubSchedulingEngine()
     private let legacyImporter: any LegacyBackupImporting = LegacyBackupImporter()
 
@@ -130,7 +130,24 @@ struct SettingsRootView: View {
         }
         do {
             let summary = try await legacyImporter.importFullBackup(data: data, context: modelContext)
-            statusMessage = "已导入：课表 \(summary.tableCount) 张，课程 \(summary.courseCount) 条。"
+            let snapshots = try ConflictScheduleSnapshotBuilder.fetchAllSnapshots(context: modelContext)
+            let conflictRequest = ConflictCheckRequest.make(
+                tables: snapshots,
+                scope: .allTables,
+                scheduleTableLegacyIDs: snapshots.map(\.legacyID),
+                includeGlobalCrossTable: true
+            )
+            let conflictResult = try await conflictEngine.check(request: conflictRequest)
+            var message = "已导入：课表 \(summary.tableCount) 张，课程 \(summary.courseCount) 条。"
+            if conflictResult.hardIssues.isEmpty {
+                message += " 冲突检测：无硬冲突。"
+            } else {
+                message += " 冲突检测：\(conflictResult.hardIssues.count) 个硬冲突。"
+            }
+            if !conflictResult.softIssues.isEmpty {
+                message += " \(conflictResult.softIssues.count) 条警告。"
+            }
+            statusMessage = message
         } catch {
             errorMessage = error.localizedDescription
         }
