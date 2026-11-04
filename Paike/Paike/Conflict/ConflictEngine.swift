@@ -13,14 +13,17 @@ struct ConflictIssue: Identifiable, Sendable {
     let gridKey: String?
 }
 
-struct ConflictCheckRequest: Sendable {
-    var scheduleTableLegacyIDs: [String]
-    var includeGlobalCrossTable: Bool
-}
-
 struct ConflictCheckResult: Sendable {
     var issues: [ConflictIssue]
     var checkedAt: Date
+
+    var hardIssues: [ConflictIssue] {
+        issues.filter { $0.severity == .hard }
+    }
+
+    var softIssues: [ConflictIssue] {
+        issues.filter { $0.severity == .soft }
+    }
 }
 
 protocol ConflictEngine: Sendable {

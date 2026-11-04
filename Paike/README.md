@@ -50,4 +50,4 @@ Suggested: **`com.xidian.paike`**
 
 ## Status
 
-Legacy **fullBackup** import is implemented (PK-11). Auto-schedule / conflict engines remain stubs.
+Legacy **fullBackup** import (PK-11). **ConflictEngine** v1 hard checks + daily-load soft warning (PK-12). Auto-schedule remains stub.
