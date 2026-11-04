@@ -25,3 +25,7 @@ public/app-icon-source.png
 *.sln
 *.sw?
 .vercel
+
+# Paike / Xcode (see Paike/.gitignore)
+Paike/DerivedData/
+Paike/build/
