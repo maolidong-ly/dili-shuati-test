@@ -11,6 +11,7 @@ struct SettingsRootView: View {
 
     @State private var isImportingFile = false
     @State private var pendingImportData: Data?
+    @State private var pendingImportURL: URL?
     @State private var importPreview: LegacyImportSummary?
     @State private var importMetadata: LegacyFullBackupMetadata?
     @State private var showImportConfirmation = false
@@ -61,6 +62,7 @@ struct SettingsRootView: View {
         .alert("导入 legacy 备份？", isPresented: $showImportConfirmation) {
             Button("取消", role: .cancel) {
                 pendingImportData = nil
+                pendingImportURL = nil
                 importPreview = nil
                 importMetadata = nil
             }
@@ -110,8 +112,10 @@ struct SettingsRootView: View {
             let data = try Data(contentsOf: url)
             let (metadata, summary) = try await legacyImporter.preview(data: data)
             pendingImportData = data
+            pendingImportURL = url
             importMetadata = metadata
             importPreview = summary
+            statusMessage = "已读取备份「\(url.lastPathComponent)」，请确认导入。"
             showImportConfirmation = true
         } catch {
             errorMessage = error.localizedDescription
@@ -120,15 +124,17 @@ struct SettingsRootView: View {
 
     @MainActor
     private func confirmImport() async {
-        guard let data = pendingImportData else { return }
+        guard pendingImportURL != nil || pendingImportData != nil else { return }
         isWorking = true
         defer {
             isWorking = false
             pendingImportData = nil
+            pendingImportURL = nil
             importPreview = nil
             importMetadata = nil
         }
         do {
+            let data = try importPayloadData()
             let summary = try await legacyImporter.importFullBackup(data: data, context: modelContext)
             let snapshots = try ConflictScheduleSnapshotBuilder.fetchAllSnapshots(context: modelContext)
             let conflictRequest = ConflictCheckRequest.make(
@@ -151,6 +157,20 @@ struct SettingsRootView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func importPayloadData() throws -> Data {
+        if let url = pendingImportURL {
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessed { url.stopAccessingSecurityScopedResource() }
+            }
+            return try Data(contentsOf: url)
+        }
+        if let data = pendingImportData {
+            return data
+        }
+        throw CocoaError(.fileReadUnknown)
     }
 }
 
